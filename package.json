@@ -36,29 +36,29 @@
     "amplify:generate": "npx ampx generate outputs --app-id <your-app-id> --branch main"
   },
   "dependencies": {
-    "@aws-amplify/backend": "^1.16.1",
-    "@aws-amplify/backend-cli": "^1.8.0",
-    "@aws-amplify/ui-react": "^6.11.2",
-    "@tanstack/react-query": "^5.81.5",
-    "@tanstack/react-router": "^1.122.0",
-    "@tanstack/react-router-devtools": "^1.122.0",
-    "@tanstack/react-start": "^1.122.1",
-    "aws-amplify": "^6.15.1",
-    "react": "^19.1.0",
-    "react-dom": "^19.1.0",
+    "@aws-amplify/backend": "^1.25.1",
+    "@aws-amplify/backend-cli": "^1.10.0",
+    "@aws-amplify/ui-react": "^6.15.6",
+    "@tanstack/react-query": "^5.103.2",
+    "@tanstack/react-router": "^1.170.38",
+    "@tanstack/react-router-devtools": "^1.167.2",
+    "@tanstack/react-start": "^1.168.56",
+    "aws-amplify": "^6.22.0",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
     "redaxios": "^0.5.1",
-    "tailwind-merge": "^2.6.0"
+    "tailwind-merge": "^3.7.0"
   },
   "devDependencies": {
-    "@tanstack/react-query-devtools": "^5.0.0",
-    "@types/node": "^22.15.34",
-    "@types/react": "^19.1.8",
-    "@types/react-dom": "^19.1.6",
-    "autoprefixer": "^10.4.21",
-    "postcss": "^8.5.6",
-    "tailwindcss": "^3.4.17",
-    "typescript": "^5.8.3",
-    "vite": "^6.3.5",
-    "vite-tsconfig-paths": "^5.1.4"
+    "@tanstack/react-query-devtools": "^5.103.2",
+    "@types/node": "^26.6.2",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "autoprefixer": "^10.6.1",
+    "postcss": "^8.5.28",
+    "tailwindcss": "^4.3.3",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.0",
+    "vite-tsconfig-paths": "^6.1.1"
   }
 }
