@@ -5,7 +5,13 @@ import {
 	signOut,
 } from "aws-amplify/auth";
 import { Hub } from "aws-amplify/utils";
-import { useCallback, useEffect, useState } from "react";
+import {
+	createContext,
+	useCallback,
+	useContext,
+	useEffect,
+	useState,
+} from "react";
 import { GROUPS, type Group } from "../../amplify/auth/groups";
 
 export interface AuthState {
@@ -77,7 +83,20 @@ export function useAuth() {
 	return {
 		...authState,
 		isParent: authState.groups.includes(GROUPS.parent),
+		isAdmin: authState.groups.includes(GROUPS.admin),
 		logout,
 		checkAuthState,
 	};
+}
+
+export type Auth = ReturnType<typeof useAuth>;
+
+// Provided by the _authed layout so pages share one auth state instead of each
+// calling useAuth (and refreshing tokens) on mount.
+export const AuthContext = createContext<Auth | null>(null);
+
+export function useAuthContext(): Auth {
+	const auth = useContext(AuthContext);
+	if (!auth) throw new Error("useAuthContext must be used inside _authed.");
+	return auth;
 }

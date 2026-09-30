@@ -10,7 +10,8 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import type { AgendaItem, Child, Resource } from "~/lib/agenda";
-import { CHILD_COLORS } from "~/lib/agenda";
+import { formatTimeRange } from "~/lib/agenda";
+import { colorClasses } from "~/lib/colors";
 
 const RESOURCE_ICONS = {
 	pdf: FileText,
@@ -19,14 +20,19 @@ const RESOURCE_ICONS = {
 	note: StickyNote,
 };
 
-function ChildBadge({
-	child,
-	colorIndex,
-}: {
-	child: Child;
-	colorIndex: number;
-}) {
-	const colors = CHILD_COLORS[colorIndex % CHILD_COLORS.length];
+// Children assigned to an item or resource, in household order. Only shown in
+// the "All" view: when filtering by one child, the badge would be redundant.
+function assignedChildren(
+	childIds: readonly (string | null)[] | null | undefined,
+	allChildren: Child[],
+	activeChildId: string | null,
+): Child[] {
+	if (activeChildId || !childIds) return [];
+	return allChildren.filter((c) => childIds.includes(c.id));
+}
+
+function ChildBadge({ child }: { child: Child }) {
+	const colors = colorClasses(child.color);
 	return (
 		<span
 			className={`inline-flex items-center gap-0.5 rounded-full px-2 py-0.5 text-[10px] font-bold ${colors.bg} ${colors.text}`}
@@ -87,19 +93,12 @@ function ResourceCard({
 	activeChildId: string | null;
 }) {
 	const [open, setOpen] = useState(false);
-	const Icon = RESOURCE_ICONS[resource.type];
-
-	// Assigned children for this resource (only shown in "All" view)
-	type FoundChild = { child: Child; index: number };
-	const assignedChildren: FoundChild[] =
-		!activeChildId && resource.childIds
-			? resource.childIds.reduce<FoundChild[]>((acc, cid) => {
-					const index = allChildren.findIndex((c) => c.id === cid);
-					const child = allChildren[index];
-					if (child) acc.push({ child, index });
-					return acc;
-				}, [])
-			: [];
+	const Icon = RESOURCE_ICONS[resource.type ?? "note"];
+	const badges = assignedChildren(
+		resource.childIds,
+		allChildren,
+		activeChildId,
+	);
 
 	const hasDetail =
 		resource.description ||
@@ -118,10 +117,10 @@ function ResourceCard({
 				<span className="text-[10px] font-bold leading-tight text-slate-500">
 					{resource.label}
 				</span>
-				{assignedChildren.length > 0 && (
+				{badges.length > 0 && (
 					<div className="mt-1.5 flex flex-wrap justify-center gap-1">
-						{assignedChildren.map(({ child, index }) => (
-							<ChildBadge key={child.id} child={child} colorIndex={index} />
+						{badges.map((child) => (
+							<ChildBadge key={child.id} child={child} />
 						))}
 					</div>
 				)}
@@ -150,10 +149,13 @@ function ResourceCard({
 								AI Prompts
 							</p>
 							<div className="flex flex-col gap-1.5">
-								{resource.prompts.map((prompt, i) => (
-									// biome-ignore lint/suspicious/noArrayIndexKey: prompts are static
-									<PromptRow key={i} prompt={prompt} />
-								))}
+								{resource.prompts.map(
+									(prompt, i) =>
+										prompt && (
+											// biome-ignore lint/suspicious/noArrayIndexKey: prompts are static
+											<PromptRow key={i} prompt={prompt} />
+										),
+								)}
 							</div>
 						</>
 					)}
@@ -174,24 +176,16 @@ export default function AgendaItemCard({
 }) {
 	const [expanded, setExpanded] = useState(false);
 
-	type FoundChild = { child: Child; index: number };
-	// Assigned children for this item (shown in "All" view)
-	const assignedChildren: FoundChild[] =
-		!activeChildId && item.childIds
-			? item.childIds.reduce<FoundChild[]>((acc, cid) => {
-					const index = allChildren.findIndex((c) => c.id === cid);
-					const child = allChildren[index];
-					if (child) acc.push({ child, index });
-					return acc;
-				}, [])
-			: [];
+	const badges = assignedChildren(item.childIds, allChildren, activeChildId);
+	const time = formatTimeRange(item.startTime, item.endTime);
 
 	// Filter resources based on active child
 	const visibleResources = item.resources?.filter(
-		(r) =>
-			!r.childIds ||
-			r.childIds.length === 0 ||
-			(activeChildId ? r.childIds.includes(activeChildId) : true),
+		(r): r is Resource =>
+			!!r &&
+			(!r.childIds ||
+				r.childIds.length === 0 ||
+				(activeChildId ? r.childIds.includes(activeChildId) : true)),
 	);
 
 	return (
@@ -209,20 +203,18 @@ export default function AgendaItemCard({
 			>
 				<div className="flex items-center gap-4 min-w-0">
 					<div
-						className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-2xl text-xl ${item.iconBg}`}
+						className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-2xl text-xl ${colorClasses(item.color).bg}`}
 					>
 						{item.emoji}
 					</div>
 					<div className="flex flex-col items-start min-w-0">
 						<div className="flex items-center gap-2 flex-wrap">
 							<span className="font-bold text-slate-700">{item.title}</span>
-							{assignedChildren.map(({ child, index }) => (
-								<ChildBadge key={child.id} child={child} colorIndex={index} />
+							{badges.map((child) => (
+								<ChildBadge key={child.id} child={child} />
 							))}
 						</div>
-						{item.time && (
-							<span className="text-xs text-slate-400">{item.time}</span>
-						)}
+						{time && <span className="text-xs text-slate-400">{time}</span>}
 					</div>
 				</div>
 				<ChevronDown
@@ -234,12 +226,12 @@ export default function AgendaItemCard({
 
 			{expanded && (
 				<div className="border-t border-slate-100 bg-slate-50 p-4">
-					{item.time && (
+					{time && (
 						<>
 							<p className="text-xs font-bold uppercase tracking-wider text-indigo-500">
 								Approximate Time
 							</p>
-							<p className="mb-3 text-slate-600">{item.time}</p>
+							<p className="mb-3 text-slate-600">{time}</p>
 						</>
 					)}
 					{item.description && (

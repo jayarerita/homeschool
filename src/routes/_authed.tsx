@@ -1,13 +1,14 @@
 import { createFileRoute, Outlet } from "@tanstack/react-router";
 import { Login } from "~/components/Login";
-import { useAuth } from "~/hooks/useAuth";
+import { AuthContext, useAuth } from "~/hooks/useAuth";
 
 export const Route = createFileRoute("/_authed")({
 	component: AuthGuard,
 });
 
 function AuthGuard() {
-	const { isAuthenticated, isLoading, isParent, user, logout } = useAuth();
+	const auth = useAuth();
+	const { isAuthenticated, isLoading, isParent, user, logout } = auth;
 
 	if (isLoading) {
 		return (
@@ -48,5 +49,9 @@ function AuthGuard() {
 		);
 	}
 
-	return <Outlet />;
+	return (
+		<AuthContext.Provider value={auth}>
+			<Outlet />
+		</AuthContext.Provider>
+	);
 }

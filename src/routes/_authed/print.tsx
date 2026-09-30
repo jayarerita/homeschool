@@ -1,7 +1,13 @@
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { GraduationCap, Printer } from "lucide-react";
-import { formatDisplayDate, getAgendaForDate, toDateKey } from "~/lib/agenda";
+import {
+	formatDisplayDate,
+	formatTimeRange,
+	getAgendaForDate,
+	toDateKey,
+} from "~/lib/agenda";
+import { colorClasses } from "~/lib/colors";
 
 export const Route = createFileRoute("/_authed/print")({
 	validateSearch: (search: Record<string, unknown>) => ({
@@ -57,43 +63,46 @@ function PrintPage() {
 					<p className="text-slate-400">Nothing planned for this day.</p>
 				) : (
 					<ol className="space-y-0">
-						{items.map((item, index) => (
-							<li
-								key={item.id}
-								className="group relative flex gap-2 print-item"
-							>
-								{/* Timeline spine */}
-								<div className="flex flex-col items-center">
-									<div
-										className={`mt-0.5 flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg text-base ${item.iconBg}`}
-									>
-										{item.emoji}
-									</div>
-									{index < items.length - 1 && (
-										<div className="mt-0.5 w-px flex-1 bg-slate-200" />
-									)}
-								</div>
-
-								{/* Content — time+title left, description right */}
-								<div className="min-w-0 flex-1 pb-3 flex gap-4 items-baseline">
-									<div className="w-36 flex-shrink-0">
-										{item.time && (
-											<span className="block text-[10px] font-semibold tracking-wide text-indigo-400 uppercase leading-none mb-0.5">
-												{item.time}
-											</span>
+						{items.map((item, index) => {
+							const time = formatTimeRange(item.startTime, item.endTime);
+							return (
+								<li
+									key={item.id}
+									className="group relative flex gap-2 print-item"
+								>
+									{/* Timeline spine */}
+									<div className="flex flex-col items-center">
+										<div
+											className={`mt-0.5 flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg text-base ${colorClasses(item.color).bg}`}
+										>
+											{item.emoji}
+										</div>
+										{index < items.length - 1 && (
+											<div className="mt-0.5 w-px flex-1 bg-slate-200" />
 										)}
-										<h2 className="text-sm font-bold text-slate-800 leading-snug">
-											{item.title}
-										</h2>
 									</div>
-									{item.description && (
-										<p className="text-sm leading-snug text-slate-500 flex-1">
-											{item.description}
-										</p>
-									)}
-								</div>
-							</li>
-						))}
+
+									{/* Content — time+title left, description right */}
+									<div className="min-w-0 flex-1 pb-3 flex gap-4 items-baseline">
+										<div className="w-36 flex-shrink-0">
+											{time && (
+												<span className="block text-[10px] font-semibold tracking-wide text-indigo-400 uppercase leading-none mb-0.5">
+													{time}
+												</span>
+											)}
+											<h2 className="text-sm font-bold text-slate-800 leading-snug">
+												{item.title}
+											</h2>
+										</div>
+										{item.description && (
+											<p className="text-sm leading-snug text-slate-500 flex-1">
+												{item.description}
+											</p>
+										)}
+									</div>
+								</li>
+							);
+						})}
 					</ol>
 				)}
 

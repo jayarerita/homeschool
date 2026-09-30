@@ -3,9 +3,9 @@
 An open-source homeschool planner with an AI tutor, built on **TanStack Start**
 and deployable to **AWS Amplify Gen 2**. One deployment serves one household.
 
-> Status: early. Phase 1 (foundation) is in place: authentication, household
-> roles, and the daily agenda UI. Data storage, the tutor agent, and
-> notifications are coming — see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
+> Status: early. Authentication, household roles and member invites, child
+> profiles, and the daily agenda (stored in DynamoDB) are in place. Agenda
+> editing, the tutor agent, and notifications are coming — see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
 > for the design and roadmap.
 
 ## Getting started
@@ -25,21 +25,27 @@ Household members are grouped in Cognito:
 
 | Group | Access |
 |---|---|
-| `PARENT` | Full access |
+| `ADMIN` | Parent who can also invite and manage members |
+| `PARENT` | Full access to plans and children |
 | `CHILD` | Kid experience (coming in a later phase) |
 | `DEVICE` | Voice device (coming in a later phase) |
 
-**The first person to sign up and confirm their email becomes a `PARENT`.**
-After that, public sign-up is closed; additional accounts must be added by a
-parent (an in-app invite flow is planned — until then, create users and assign
-groups in the Cognito console).
+**The first person to sign up and confirm their email becomes an `ADMIN`
+parent.** After that, public sign-up is closed. Admins invite others from
+**Settings → Household members**; invitees get an email with a temporary
+password.
+
+Children, their label colors, birthdays and other details are set up in
+**Settings → Children**. Data from the pre-cloud local app can be loaded in
+**Settings → Import**.
 
 ## Scripts
 
 ```bash
 npm run dev              # dev server
 npm run build            # production build
-npm run typecheck        # TypeScript
+npm run typecheck        # TypeScript (needs amplify_outputs.json from a sandbox)
+npm run test             # unit tests
 npm run check            # Biome lint + format check
 npm run format           # Biome format
 npm run amplify:sandbox  # personal cloud sandbox

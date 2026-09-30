@@ -1,8 +1,8 @@
 import { LogOut } from "lucide-react";
-import { useAuth } from "~/hooks/useAuth";
+import { useAuthContext } from "~/hooks/useAuth";
 
 export default function UserMenu() {
-	const { user, logout } = useAuth();
+	const { user, logout } = useAuthContext();
 
 	return (
 		<div className="flex items-center gap-2 text-xs text-slate-400">

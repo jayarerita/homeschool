@@ -1,59 +1,11 @@
-export type ResourceType = "pdf" | "video" | "link" | "note";
+import type { ColorToken } from "./colors";
+import { client, type Schema, unwrap } from "./data-client";
 
-export type Child = {
-	id: string;
-	name: string;
-	emoji?: string;
-};
-
-// Fixed color palette indexed by child order (up to 4 children)
-export const CHILD_COLORS = [
-	{
-		bg: "bg-pink-100",
-		text: "text-pink-700",
-		border: "border-pink-300",
-		activeBg: "bg-pink-500",
-	},
-	{
-		bg: "bg-sky-100",
-		text: "text-sky-700",
-		border: "border-sky-300",
-		activeBg: "bg-sky-500",
-	},
-	{
-		bg: "bg-amber-100",
-		text: "text-amber-700",
-		border: "border-amber-300",
-		activeBg: "bg-amber-500",
-	},
-	{
-		bg: "bg-violet-100",
-		text: "text-violet-700",
-		border: "border-violet-300",
-		activeBg: "bg-violet-500",
-	},
-] as const;
-
-export type Resource = {
-	id: string;
-	label: string;
-	type: ResourceType;
-	url?: string;
-	description?: string;
-	childIds?: string[];
-	prompts?: string[];
-};
-
-export type AgendaItem = {
-	id: string;
-	title: string;
-	emoji: string;
-	iconBg: string;
-	time?: string;
-	description?: string;
-	resources?: Resource[];
-	childIds?: string[];
-};
+export type Child = Schema["Child"]["type"];
+export type AgendaItem = Schema["AgendaItem"]["type"];
+export type Resource = Schema["ResourceRef"]["type"];
+export type ResourceType = NonNullable<Resource["type"]>;
+export type { ColorToken };
 
 export type DayAgenda = {
 	date: string;
@@ -78,7 +30,42 @@ export function formatDisplayDate(dateKey: string): string {
 	});
 }
 
-// Placeholder until phase 2 moves agendas into DynamoDB via Amplify Data.
+// "13:05" -> "1:05 PM"
+export function formatTime(hhmm: string): string {
+	const [h, m] = hhmm.split(":").map(Number);
+	const suffix = h >= 12 ? "PM" : "AM";
+	return `${h % 12 || 12}:${String(m).padStart(2, "0")} ${suffix}`;
+}
+
+export function formatTimeRange(
+	start?: string | null,
+	end?: string | null,
+): string | undefined {
+	if (start && end) return `${formatTime(start)} – ${formatTime(end)}`;
+	if (start) return formatTime(start);
+	return undefined;
+}
+
+export function byChildOrder(a: Child, b: Child): number {
+	return a.sortOrder - b.sortOrder || a.name.localeCompare(b.name);
+}
+
+export async function listChildren(): Promise<Child[]> {
+	const children = unwrap(await client.models.Child.list({ limit: 1000 }));
+	return children.sort(byChildOrder);
+}
+
 export async function getAgendaForDate(dateKey: string): Promise<DayAgenda> {
-	return { date: dateKey, children: [], items: [] };
+	const [children, items] = await Promise.all([
+		listChildren(),
+		client.models.AgendaItem.agendaItemsByDate(
+			{ date: dateKey },
+			{ sortDirection: "ASC", limit: 1000 },
+		).then(unwrap),
+	]);
+	return {
+		date: dateKey,
+		children: children.filter((c) => !c.archived),
+		items,
+	};
 }

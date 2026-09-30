@@ -15,6 +15,7 @@ import { Route as LogoutRouteImport } from './routes/logout'
 import { Route as SignupRouteImport } from './routes/signup'
 import { Route as AuthedIndexRouteImport } from './routes/_authed/index'
 import { Route as AuthedPrintRouteImport } from './routes/_authed/print'
+import { Route as AuthedSettingsRouteImport } from './routes/_authed/settings'
 
 const AuthedRoute = AuthedRouteImport.update({
   id: '/_authed',
@@ -45,6 +46,11 @@ const AuthedPrintRoute = AuthedPrintRouteImport.update({
   path: '/print',
   getParentRoute: () => AuthedRoute,
 } as any)
+const AuthedSettingsRoute = AuthedSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => AuthedRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AuthedIndexRoute
@@ -52,12 +58,14 @@ export interface FileRoutesByFullPath {
   '/logout': typeof LogoutRoute
   '/signup': typeof SignupRoute
   '/print': typeof AuthedPrintRoute
+  '/settings': typeof AuthedSettingsRoute
 }
 export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/logout': typeof LogoutRoute
   '/signup': typeof SignupRoute
   '/print': typeof AuthedPrintRoute
+  '/settings': typeof AuthedSettingsRoute
   '/': typeof AuthedIndexRoute
 }
 export interface FileRoutesById {
@@ -67,13 +75,14 @@ export interface FileRoutesById {
   '/logout': typeof LogoutRoute
   '/signup': typeof SignupRoute
   '/_authed/print': typeof AuthedPrintRoute
+  '/_authed/settings': typeof AuthedSettingsRoute
   '/_authed/': typeof AuthedIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/login' | '/logout' | '/signup' | '/print'
+  fullPaths: '/' | '/login' | '/logout' | '/signup' | '/print' | '/settings'
   fileRoutesByTo: FileRoutesByTo
-  to: '/login' | '/logout' | '/signup' | '/print' | '/'
+  to: '/login' | '/logout' | '/signup' | '/print' | '/settings' | '/'
   id:
     | '__root__'
     | '/_authed'
@@ -81,6 +90,7 @@ export interface FileRouteTypes {
     | '/logout'
     | '/signup'
     | '/_authed/print'
+    | '/_authed/settings'
     | '/_authed/'
   fileRoutesById: FileRoutesById
 }
@@ -135,16 +145,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthedPrintRouteImport
       parentRoute: typeof AuthedRoute
     }
+    '/_authed/settings': {
+      id: '/_authed/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof AuthedSettingsRouteImport
+      parentRoute: typeof AuthedRoute
+    }
   }
 }
 
 interface AuthedRouteChildren {
   AuthedPrintRoute: typeof AuthedPrintRoute
+  AuthedSettingsRoute: typeof AuthedSettingsRoute
   AuthedIndexRoute: typeof AuthedIndexRoute
 }
 
 const AuthedRouteChildren: AuthedRouteChildren = {
   AuthedPrintRoute: AuthedPrintRoute,
+  AuthedSettingsRoute: AuthedSettingsRoute,
   AuthedIndexRoute: AuthedIndexRoute,
 }
 

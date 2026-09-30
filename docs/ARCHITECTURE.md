@@ -28,11 +28,13 @@ Lambdas (defineFunction) — all share one "agent core"
   ├─ tutorTurn     one chat/voice turn; invoked by an async AppSync mutation
   ├─ planner       scheduled (nightly + Sunday): drafts upcoming days, materials, feedback asks
   ├─ notifier      Web Push + SES email; driven by new Notification rows
-  └─ adminUsers    parents create kid/device accounts (Cognito admin APIs)
 
-Auth triggers
-  ├─ preSignUp        blocks self sign-up once a parent exists (invite-only)
-  └─ postConfirmation first confirmed user is added to PARENT
+Auth stack
+  ├─ preSignUp        blocks self sign-up once an admin exists (invite-only)
+  ├─ postConfirmation first confirmed user is added to ADMIN + PARENT
+  └─ manageMembers    admin-only AppSync resolvers: list/invite/re-role/remove
+                      members (lives in the auth stack; in the data stack it
+                      creates an auth <-> data circular dependency)
 ```
 
 ### Agent core (`amplify/agent/`)
@@ -58,9 +60,9 @@ callable from a scheduled job and a physical device, not only a chat route.
 
 | Model | Purpose |
 |---|---|
-| `Child` | name, emoji, color index, birthdate, interests, optional linked Cognito user |
+| `Child` | name, emoji, label color (palette token), birthdate, grade level, interests, tutor notes, sort order, archived. Managed by parents in Settings |
 | `DayPlan` | `date` (`YYYY-MM-DD`, identifier), summary, status (draft/published) |
-| `AgendaItem` | `date` (indexed), `startTime`/`endTime` (`HH:mm`), `sortOrder`, title, emoji, color token, description, `childIds[]`, status (planned/done/skipped), source (agent/parent/routine), embedded `resources: ResourceRef[]` |
+| `AgendaItem` | `date` (indexed), `startTime`/`endTime` (`HH:mm`), `sortOrder`, title, emoji, color (palette token), description, `childIds[]`, status (planned/done/skipped), source (agent/parent/routine), embedded `resources: ResourceRef[]` |
 | `ResourceRef` (customType) | label, type (pdf/video/link/note), url, s3Key, description, childIds, prompts, optional `libraryResourceId` |
 | `Resource` | reusable library: books, videos, links, worksheets, materials; tags, age range |
 | `Routine` | recurring blocks with weekdays and default times; the planner expands them |
@@ -70,21 +72,29 @@ callable from a scheduled job and a physical device, not only a chat route.
 | `Conversation` / `Message` | chat history (replaces inbox/outbox JSON + localStorage) |
 | `Notification` / `PushSubscription` / `NotificationPrefs` | in-app inbox, per-device push subscriptions, quiet hours and per-type toggles |
 
-Records carry a `householdId` so multi-household hosting remains possible,
-even though each deployment is one household.
+Colors are stored as palette tokens (`amplify/data/colors.ts`), never
+Tailwind classes; `src/lib/colors.ts` maps tokens to classes. Nothing about a
+particular family (names, colors, ages) is hardcoded.
+
+Each deployment is one household, so records carry no household id. Hosting
+several households in one deployment would need one added.
 
 ### Authorization
 
 Cognito groups:
 
+- `ADMIN` — an add-on to `PARENT`: can invite, re-role and remove members.
 - `PARENT` — full CRUD on everything.
 - `CHILD` — read own agenda items, chat in kid mode.
 - `DEVICE` — voice device; tutor turns and read access to the current day.
 
 Agent Lambdas get access through `allow.resource(fn)`.
 
-The first confirmed user becomes `PARENT`; afterwards self sign-up is closed and
-parents invite others.
+The first confirmed user becomes `ADMIN` + `PARENT`; afterwards self sign-up
+is closed and admins invite others by email (Cognito sends a temporary
+password). Every member has exactly one base role (`PARENT`, `CHILD` or
+`DEVICE`); `ADMIN` is only valid on parents. Admins can't demote or remove
+themselves, so a household always keeps at least one admin.
 
 ## Notifications
 
@@ -112,8 +122,11 @@ depend on the input channel.
 | `components/CalendarDropdown.tsx` | `src/components/CalendarDropdown.tsx` |
 | `components/ChatPanel.tsx` | `src/components/ChatPanel.tsx` (rewired to Amplify Data in phase 4) |
 | `routes/print.tsx` | `src/routes/_authed/print.tsx` |
-| `data/agenda.ts` types + `CHILD_COLORS` | `src/lib/agenda.ts` |
-| `data/agenda-service.ts`, `data/chat-service.ts` | replaced by Amplify Data (phases 2 and 4) |
+| `data/agenda.ts` types | generated from the schema (`src/lib/agenda.ts`) |
+| `CHILD_COLORS` (by child position) | per-child color chosen in Settings (`src/lib/colors.ts`) |
+| `data/agenda-service.ts` | `src/lib/agenda.ts` (Amplify Data) |
+| `data/chat-service.ts` | replaced in phase 4 |
+| day JSON files | Settings → Import (`src/lib/legacy-import.ts`) |
 | `demo*`, MCP todo example, `db-collections` | dropped |
 
 ## Roadmap
@@ -121,8 +134,10 @@ depend on the input channel.
 1. **Foundation** — remove template leftovers (posts, Prisma, cookie session),
    Tailwind v4, lucide, Biome, port the old UI shell, Cognito groups and the
    first-parent bootstrap.
-2. **Data** — schema above, replace the file-based services with Amplify Data,
-   `scripts/import-legacy.ts` to load old day JSON files.
+2. **Data + household admin** — `Child`, `DayPlan`, `AgendaItem` models; the
+   agenda reads from Amplify Data; Settings page for children (colors,
+   birthdays, details) and members (admin only); in-browser import of old day
+   JSON files.
 3. **Parent management** — pages for children, routines, learning units
    (with uploads), resource library, agenda editing.
 4. **Tutor v1** — agent core, `tutorTurn`, tools, learner profiles, live chat
