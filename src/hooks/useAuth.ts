@@ -1,86 +1,83 @@
-import { useState, useEffect } from 'react';
-import { getCurrentUser, signOut, type AuthUser } from 'aws-amplify/auth';
-import { Hub } from 'aws-amplify/utils';
+import {
+	type AuthUser,
+	fetchAuthSession,
+	getCurrentUser,
+	signOut,
+} from "aws-amplify/auth";
+import { Hub } from "aws-amplify/utils";
+import { useCallback, useEffect, useState } from "react";
+import { GROUPS, type Group } from "../../amplify/auth/groups";
 
 export interface AuthState {
-  user: AuthUser | null;
-  isLoading: boolean;
-  isAuthenticated: boolean;
+	user: AuthUser | null;
+	groups: Group[];
+	isLoading: boolean;
+	isAuthenticated: boolean;
 }
 
+const SIGNED_OUT: AuthState = {
+	user: null,
+	groups: [],
+	isLoading: false,
+	isAuthenticated: false,
+};
+
 export function useAuth() {
-  const [authState, setAuthState] = useState<AuthState>({
-    user: null,
-    isLoading: true,
-    isAuthenticated: false,
-  });
+	const [authState, setAuthState] = useState<AuthState>({
+		...SIGNED_OUT,
+		isLoading: true,
+	});
 
-  useEffect(() => {
-    checkAuthState();
+	// forceRefresh picks up group changes (e.g. the first-parent bootstrap that
+	// runs right after confirmation) without re-login. Never force from the
+	// tokenRefresh listener: a forced refresh emits tokenRefresh again.
+	const checkAuthState = useCallback(async (forceRefresh = false) => {
+		try {
+			const user = await getCurrentUser();
+			const session = await fetchAuthSession({ forceRefresh });
+			const groups =
+				(session.tokens?.accessToken.payload["cognito:groups"] as
+					| Group[]
+					| undefined) ?? [];
+			setAuthState({ user, groups, isLoading: false, isAuthenticated: true });
+		} catch {
+			setAuthState(SIGNED_OUT);
+		}
+	}, []);
 
-    // Listen for auth events
-    const unsubscribe = Hub.listen('auth', ({ payload }) => {
-      switch (payload.event) {
-        case 'signedIn':
-          checkAuthState();
-          break;
-        case 'signedOut':
-          setAuthState({
-            user: null,
-            isLoading: false,
-            isAuthenticated: false,
-          });
-          break;
-        case 'tokenRefresh':
-          checkAuthState();
-          break;
-        case 'tokenRefresh_failure':
-          setAuthState({
-            user: null,
-            isLoading: false,
-            isAuthenticated: false,
-          });
-          break;
-      }
-    });
+	useEffect(() => {
+		checkAuthState(true);
 
-    return unsubscribe;
-  }, []);
+		return Hub.listen("auth", ({ payload }) => {
+			switch (payload.event) {
+				case "signedIn":
+					checkAuthState(true);
+					break;
+				case "tokenRefresh":
+					checkAuthState();
+					break;
+				case "signedOut":
+				case "tokenRefresh_failure":
+					setAuthState(SIGNED_OUT);
+					break;
+			}
+		});
+	}, [checkAuthState]);
 
-  const checkAuthState = async () => {
-    try {
-      const user = await getCurrentUser();
-      setAuthState({
-        user,
-        isLoading: false,
-        isAuthenticated: true,
-      });
-    } catch (error) {
-      setAuthState({
-        user: null,
-        isLoading: false,
-        isAuthenticated: false,
-      });
-    }
-  };
+	const logout = useCallback(async () => {
+		try {
+			await signOut();
+			setAuthState(SIGNED_OUT);
+			return { success: true };
+		} catch (error) {
+			return { success: false, error: (error as Error).message };
+		}
+	}, []);
 
-  const logout = async () => {
-    try {
-      await signOut();
-      setAuthState({
-        user: null,
-        isLoading: false,
-        isAuthenticated: false,
-      });
-      return { success: true };
-    } catch (error: any) {
-      return { success: false, error: error.message };
-    }
-  };
-
-  return {
-    ...authState,
-    logout,
-    checkAuthState,
-  };
+	return {
+		...authState,
+		isParent: authState.groups.includes(GROUPS.parent),
+		logout,
+		checkAuthState,
+	};
 }

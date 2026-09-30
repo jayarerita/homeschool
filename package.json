@@ -1,64 +1,59 @@
 {
-  "name": "tanstack-start-amplify-template",
-  "version": "1.0.0",
-  "description": "A modern full-stack React template with TanStack Start and AWS Amplify Gen 2",
-  "private": false,
-  "sideEffects": false,
-  "type": "module",
-  "keywords": [
-    "tanstack",
-    "tanstack-start",
-    "aws-amplify",
-    "amplify-gen2",
-    "react",
-    "typescript",
-    "template",
-    "fullstack",
-    "authentication",
-    "graphql"
-  ],
-  "author": "Your Name <your.email@example.com>",
-  "license": "MIT",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/jayarerita/tanstack-start-basic-auth-amplify.git"
-  },
-  "bugs": {
-    "url": "https://github.com/jayarerita/tanstack-start-basic-auth-amplify/issues"
-  },
-  "homepage": "https://github.com/jayarerita/tanstack-start-basic-auth-amplify#readme",
-  "scripts": {
-    "dev": "vite dev",
-    "build": "vite build",
-    "start": "vite start",
-    "amplify:sandbox": "npx ampx sandbox",
-    "amplify:deploy": "npx ampx deploy",
-    "amplify:generate": "npx ampx generate outputs --app-id <your-app-id> --branch main"
-  },
-  "dependencies": {
-    "@aws-amplify/backend": "^1.25.1",
-    "@aws-amplify/backend-cli": "^1.10.0",
-    "@aws-amplify/ui-react": "^6.15.6",
-    "@tanstack/react-query": "^5.103.2",
-    "@tanstack/react-router": "^1.170.38",
-    "@tanstack/react-router-devtools": "^1.167.2",
-    "@tanstack/react-start": "^1.168.56",
-    "aws-amplify": "^6.22.0",
-    "react": "^19.3.0",
-    "react-dom": "^19.3.0",
-    "redaxios": "^0.5.1",
-    "tailwind-merge": "^3.7.0"
-  },
-  "devDependencies": {
-    "@tanstack/react-query-devtools": "^5.103.2",
-    "@types/node": "^26.6.2",
-    "@types/react": "^19.3.0",
-    "@types/react-dom": "^19.3.0",
-    "autoprefixer": "^10.6.1",
-    "postcss": "^8.5.28",
-    "tailwindcss": "^4.3.3",
-    "typescript": "^7.0.2",
-    "vite": "^8.3.0",
-    "vite-tsconfig-paths": "^6.1.1"
-  }
+	"name": "homeschool",
+	"version": "0.1.0",
+	"description": "Open-source homeschool planner with an AI tutor, deployable to AWS Amplify Gen 2.",
+	"private": false,
+	"sideEffects": false,
+	"type": "module",
+	"keywords": [
+		"homeschool",
+		"tutor",
+		"ai",
+		"tanstack-start",
+		"aws-amplify",
+		"amplify-gen2"
+	],
+	"author": "jake",
+	"license": "MIT",
+	"scripts": {
+		"dev": "vite dev",
+		"build": "vite build",
+		"start": "vite start",
+		"amplify:sandbox": "npx ampx sandbox",
+		"amplify:deploy": "npx ampx deploy",
+		"amplify:generate": "npx ampx generate outputs --app-id <your-app-id> --branch main",
+		"typecheck": "tsc --noEmit",
+		"lint": "biome lint .",
+		"format": "biome format --write .",
+		"check": "biome check ."
+	},
+	"dependencies": {
+		"@aws-amplify/backend": "^1.25.1",
+		"@aws-amplify/backend-cli": "^1.10.0",
+		"@aws-amplify/ui-react": "^6.15.6",
+		"@aws-sdk/client-cognito-identity-provider": "^3.1138.0",
+		"@tanstack/react-query": "^5.103.2",
+		"@tanstack/react-router": "^1.170.38",
+		"@tanstack/react-router-devtools": "^1.167.2",
+		"@tanstack/react-start": "^1.168.56",
+		"aws-amplify": "^6.22.0",
+		"clsx": "^2.1.1",
+		"lucide-react": "^1.47.0",
+		"react": "^19.3.0",
+		"react-dom": "^19.3.0",
+		"tailwind-merge": "^3.7.0"
+	},
+	"devDependencies": {
+		"@biomejs/biome": "^2.5.14",
+		"@tailwindcss/vite": "^4.3.3",
+		"@tanstack/react-query-devtools": "^5.103.2",
+		"@types/aws-lambda": "^8.10.163",
+		"@types/node": "^26.6.2",
+		"@types/react": "^19.3.0",
+		"@types/react-dom": "^19.3.0",
+		"tailwindcss": "^4.3.3",
+		"typescript": "^7.0.2",
+		"vite": "^8.3.0",
+		"vite-tsconfig-paths": "^6.1.1"
+	}
 }
