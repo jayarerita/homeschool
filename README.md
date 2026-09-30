@@ -4,8 +4,9 @@ An open-source homeschool planner with an AI tutor, built on **TanStack Start**
 and deployable to **AWS Amplify Gen 2**. One deployment serves one household.
 
 > Status: early. Authentication, household roles and member invites, child
-> profiles, and the daily agenda (stored in DynamoDB) are in place. Agenda
-> editing, the tutor agent, and notifications are coming — see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
+> profiles, the daily agenda with editing, routines, learning units, a
+> resource library and file uploads are in place. The tutor agent and
+> notifications are coming — see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
 > for the design and roadmap.
 
 ## Getting started

@@ -8,16 +8,16 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import ColorPicker from "~/components/ColorPicker";
-import { type Child, listChildren } from "~/lib/agenda";
-import { type ColorToken, colorClasses, nextUnusedColor } from "~/lib/colors";
-import { client, unwrap } from "~/lib/data-client";
 import Section, {
 	ErrorText,
 	inputClass,
 	labelClass,
 	primaryButtonClass,
 	secondaryButtonClass,
-} from "./Section";
+} from "~/components/Section";
+import { type Child, listChildren } from "~/lib/agenda";
+import { type ColorToken, colorClasses, nextUnusedColor } from "~/lib/colors";
+import { client, unwrap } from "~/lib/data-client";
 
 type ChildDraft = {
 	name: string;

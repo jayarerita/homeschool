@@ -8,6 +8,16 @@ import { COLOR_TOKENS } from "./colors";
 const schema = a.schema({
 	Color: a.enum(COLOR_TOKENS),
 
+	// "material" = physical supplies to gather (glue, cardstock, …).
+	ResourceType: a.enum(["link", "video", "pdf", "note", "book", "material"]),
+
+	// A file in Amplify Storage.
+	Attachment: a.customType({
+		s3Key: a.string().required(),
+		name: a.string().required(),
+		contentType: a.string(),
+	}),
+
 	Child: a
 		.model({
 			name: a.string().required(),
@@ -40,7 +50,7 @@ const schema = a.schema({
 	ResourceRef: a.customType({
 		id: a.string().required(),
 		label: a.string().required(),
-		type: a.enum(["pdf", "video", "link", "note"]),
+		type: a.ref("ResourceType"),
 		url: a.url(),
 		s3Key: a.string(),
 		description: a.string(),
@@ -64,10 +74,68 @@ const schema = a.schema({
 			resources: a.ref("ResourceRef").array(),
 			status: a.enum(["planned", "done", "skipped"]),
 			source: a.enum(["parent", "agent", "routine", "import"]),
+			// Set when the item was created from a routine.
+			routineId: a.id(),
 		})
 		.secondaryIndexes((index) => [
 			index("date").sortKeys(["sortOrder"]).queryField("agendaItemsByDate"),
 		])
+		.authorization((allow) => [
+			allow.groups([GROUPS.parent]),
+			allow.groups([GROUPS.child, GROUPS.device]).to(["read"]),
+		]),
+
+	// Reusable resources that can be attached to agenda items and routines.
+	LibraryResource: a
+		.model({
+			label: a.string().required(),
+			type: a.ref("ResourceType").required(),
+			url: a.url(),
+			s3Key: a.string(),
+			description: a.string(),
+			tags: a.string().array(),
+			minAge: a.integer(),
+			maxAge: a.integer(),
+			prompts: a.string().array(),
+		})
+		.authorization((allow) => [
+			allow.groups([GROUPS.parent]),
+			allow.groups([GROUPS.child, GROUPS.device]).to(["read"]),
+		]),
+
+	// Recurring blocks (morning routine, meals, …) copied into days.
+	Routine: a
+		.model({
+			title: a.string().required(),
+			emoji: a.string(),
+			color: a.ref("Color"),
+			description: a.string(),
+			startTime: a.string(),
+			endTime: a.string(),
+			// 0 = Sunday … 6 = Saturday
+			daysOfWeek: a.integer().array().required(),
+			childIds: a.id().array(),
+			resources: a.ref("ResourceRef").array(),
+			active: a.boolean().default(true),
+		})
+		.authorization((allow) => [
+			allow.groups([GROUPS.parent]),
+			allow.groups([GROUPS.child, GROUPS.device]).to(["read"]),
+		]),
+
+	// What a child is covering elsewhere (preschool, co-op, …) over a date
+	// range, so plans at home can reinforce it.
+	LearningUnit: a
+		.model({
+			title: a.string().required(),
+			source: a.string(),
+			childIds: a.id().array(),
+			startDate: a.date().required(),
+			endDate: a.date().required(),
+			topics: a.string().array(),
+			notes: a.string(),
+			attachments: a.ref("Attachment").array(),
+		})
 		.authorization((allow) => [
 			allow.groups([GROUPS.parent]),
 			allow.groups([GROUPS.child, GROUPS.device]).to(["read"]),

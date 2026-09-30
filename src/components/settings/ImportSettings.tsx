@@ -1,11 +1,11 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
+import Section, { ErrorText, primaryButtonClass } from "~/components/Section";
 import { type LegacyDay, parseLegacyDay } from "~/lib/legacy-import";
 import {
 	type ImportResult,
 	importLegacyDays,
 } from "~/lib/legacy-import-runner";
-import Section, { ErrorText, primaryButtonClass } from "./Section";
 
 type Parsed = { days: LegacyDay[]; problems: string[] };
 

@@ -62,15 +62,25 @@ callable from a scheduled job and a physical device, not only a chat route.
 |---|---|
 | `Child` | name, emoji, label color (palette token), birthdate, grade level, interests, tutor notes, sort order, archived. Managed by parents in Settings |
 | `DayPlan` | `date` (`YYYY-MM-DD`, identifier), summary, status (draft/published) |
-| `AgendaItem` | `date` (indexed), `startTime`/`endTime` (`HH:mm`), `sortOrder`, title, emoji, color (palette token), description, `childIds[]`, status (planned/done/skipped), source (agent/parent/routine), embedded `resources: ResourceRef[]` |
-| `ResourceRef` (customType) | label, type (pdf/video/link/note), url, s3Key, description, childIds, prompts, optional `libraryResourceId` |
-| `Resource` | reusable library: books, videos, links, worksheets, materials; tags, age range |
-| `Routine` | recurring blocks with weekdays and default times; the planner expands them |
-| `LearningUnit` | what a child is doing at preschool/school: date range, theme, topics, attachments |
+| `AgendaItem` | `date` (indexed, sorted by `sortOrder`), `startTime`/`endTime` (`HH:mm`), title, emoji, color (palette token), description, `childIds[]`, status (planned/done/skipped), source (parent/agent/routine/import), `routineId`, embedded `resources: ResourceRef[]` |
+| `ResourceRef` (customType) | a copy of a resource on one item or routine: label, type, url, s3Key, description, childIds, prompts, optional `libraryResourceId` |
+| `ResourceType` (enum) | link, video, pdf, note, book, material (physical supplies — feeds "materials for tomorrow") |
+| `LibraryResource` | reusable library entry: same fields as `ResourceRef` plus tags and age range |
+| `Routine` | recurring block: weekdays, default times, children, resources, active flag. Added to a day from the agenda (and by the planner later) |
+| `LearningUnit` | what a child is doing at preschool/school: source, date range, theme, topics, notes, `attachments: Attachment[]` |
+| `Attachment` (customType) | a stored file: s3Key, name, content type |
 | `Observation` | parent feedback on an item: done, engagement, notes |
 | `LearnerProfile` | agent-maintained notes per child: skills emerging/mastered, interests, what works |
 | `Conversation` / `Message` | chat history (replaces inbox/outbox JSON + localStorage) |
 | `Notification` / `PushSubscription` / `NotificationPrefs` | in-app inbox, per-device push subscriptions, quiet hours and per-type toggles |
+
+Agenda items keep their order in `sortOrder` with gaps of 10; a new item is
+slotted in by start time and only renumbers neighbours when no gap is left
+(`src/lib/planning.ts`). Items copy resources rather than referencing the
+library, so editing or deleting a library entry never changes past days.
+
+Files live in Amplify Storage under `uploads/<uuid>/<name>`: parents can
+read/write/delete, kids and devices can read.
 
 Colors are stored as palette tokens (`amplify/data/colors.ts`), never
 Tailwind classes; `src/lib/colors.ts` maps tokens to classes. Nothing about a
@@ -138,8 +148,9 @@ depend on the input channel.
    agenda reads from Amplify Data; Settings page for children (colors,
    birthdays, details) and members (admin only); in-browser import of old day
    JSON files.
-3. **Parent management** — pages for children, routines, learning units
-   (with uploads), resource library, agenda editing.
+3. **Planning** — add/edit/reorder/delete agenda items with resources and
+   file uploads; routines (added to a day in one click); learning units with
+   attachments shown on matching days; resource library.
 4. **Tutor v1** — agent core, `tutorTurn`, tools, learner profiles, live chat
    through AppSync subscriptions.
 5. **Planner + notifications** — scheduled planner, notification models, PWA,

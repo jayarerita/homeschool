@@ -1,6 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Trash2 } from "lucide-react";
 import { useState } from "react";
+import Section, {
+	ErrorText,
+	inputClass,
+	labelClass,
+	primaryButtonClass,
+} from "~/components/Section";
 import { useAuthContext } from "~/hooks/useAuth";
 import { client, type Schema, unwrap } from "~/lib/data-client";
 import {
@@ -9,12 +15,6 @@ import {
 	GROUPS,
 	rolesToGroups,
 } from "../../../amplify/auth/groups";
-import Section, {
-	ErrorText,
-	inputClass,
-	labelClass,
-	primaryButtonClass,
-} from "./Section";
 
 type Member = Schema["Member"]["type"];
 

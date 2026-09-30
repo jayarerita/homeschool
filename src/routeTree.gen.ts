@@ -14,8 +14,13 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as LogoutRouteImport } from './routes/logout'
 import { Route as SignupRouteImport } from './routes/signup'
 import { Route as AuthedIndexRouteImport } from './routes/_authed/index'
+import { Route as AuthedPlanningRouteImport } from './routes/_authed/planning'
 import { Route as AuthedPrintRouteImport } from './routes/_authed/print'
 import { Route as AuthedSettingsRouteImport } from './routes/_authed/settings'
+import { Route as AuthedPlanningIndexRouteImport } from './routes/_authed/planning/index'
+import { Route as AuthedPlanningLibraryRouteImport } from './routes/_authed/planning/library'
+import { Route as AuthedPlanningRoutinesRouteImport } from './routes/_authed/planning/routines'
+import { Route as AuthedPlanningUnitsRouteImport } from './routes/_authed/planning/units'
 
 const AuthedRoute = AuthedRouteImport.update({
   id: '/_authed',
@@ -41,6 +46,11 @@ const AuthedIndexRoute = AuthedIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AuthedRoute,
 } as any)
+const AuthedPlanningRoute = AuthedPlanningRouteImport.update({
+  id: '/planning',
+  path: '/planning',
+  getParentRoute: () => AuthedRoute,
+} as any)
 const AuthedPrintRoute = AuthedPrintRouteImport.update({
   id: '/print',
   path: '/print',
@@ -51,14 +61,39 @@ const AuthedSettingsRoute = AuthedSettingsRouteImport.update({
   path: '/settings',
   getParentRoute: () => AuthedRoute,
 } as any)
+const AuthedPlanningIndexRoute = AuthedPlanningIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AuthedPlanningRoute,
+} as any)
+const AuthedPlanningLibraryRoute = AuthedPlanningLibraryRouteImport.update({
+  id: '/library',
+  path: '/library',
+  getParentRoute: () => AuthedPlanningRoute,
+} as any)
+const AuthedPlanningRoutinesRoute = AuthedPlanningRoutinesRouteImport.update({
+  id: '/routines',
+  path: '/routines',
+  getParentRoute: () => AuthedPlanningRoute,
+} as any)
+const AuthedPlanningUnitsRoute = AuthedPlanningUnitsRouteImport.update({
+  id: '/units',
+  path: '/units',
+  getParentRoute: () => AuthedPlanningRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AuthedIndexRoute
   '/login': typeof LoginRoute
   '/logout': typeof LogoutRoute
   '/signup': typeof SignupRoute
+  '/planning': typeof AuthedPlanningRouteWithChildren
   '/print': typeof AuthedPrintRoute
   '/settings': typeof AuthedSettingsRoute
+  '/planning/library': typeof AuthedPlanningLibraryRoute
+  '/planning/routines': typeof AuthedPlanningRoutinesRoute
+  '/planning/units': typeof AuthedPlanningUnitsRoute
+  '/planning/': typeof AuthedPlanningIndexRoute
 }
 export interface FileRoutesByTo {
   '/login': typeof LoginRoute
@@ -67,6 +102,10 @@ export interface FileRoutesByTo {
   '/print': typeof AuthedPrintRoute
   '/settings': typeof AuthedSettingsRoute
   '/': typeof AuthedIndexRoute
+  '/planning/library': typeof AuthedPlanningLibraryRoute
+  '/planning/routines': typeof AuthedPlanningRoutinesRoute
+  '/planning/units': typeof AuthedPlanningUnitsRoute
+  '/planning': typeof AuthedPlanningIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -74,24 +113,55 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/logout': typeof LogoutRoute
   '/signup': typeof SignupRoute
+  '/_authed/planning': typeof AuthedPlanningRouteWithChildren
   '/_authed/print': typeof AuthedPrintRoute
   '/_authed/settings': typeof AuthedSettingsRoute
   '/_authed/': typeof AuthedIndexRoute
+  '/_authed/planning/library': typeof AuthedPlanningLibraryRoute
+  '/_authed/planning/routines': typeof AuthedPlanningRoutinesRoute
+  '/_authed/planning/units': typeof AuthedPlanningUnitsRoute
+  '/_authed/planning/': typeof AuthedPlanningIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/login' | '/logout' | '/signup' | '/print' | '/settings'
+  fullPaths:
+    | '/'
+    | '/login'
+    | '/logout'
+    | '/signup'
+    | '/planning'
+    | '/print'
+    | '/settings'
+    | '/planning/library'
+    | '/planning/routines'
+    | '/planning/units'
+    | '/planning/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/login' | '/logout' | '/signup' | '/print' | '/settings' | '/'
+  to:
+    | '/login'
+    | '/logout'
+    | '/signup'
+    | '/print'
+    | '/settings'
+    | '/'
+    | '/planning/library'
+    | '/planning/routines'
+    | '/planning/units'
+    | '/planning'
   id:
     | '__root__'
     | '/_authed'
     | '/login'
     | '/logout'
     | '/signup'
+    | '/_authed/planning'
     | '/_authed/print'
     | '/_authed/settings'
     | '/_authed/'
+    | '/_authed/planning/library'
+    | '/_authed/planning/routines'
+    | '/_authed/planning/units'
+    | '/_authed/planning/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -138,6 +208,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthedIndexRouteImport
       parentRoute: typeof AuthedRoute
     }
+    '/_authed/planning': {
+      id: '/_authed/planning'
+      path: '/planning'
+      fullPath: '/planning'
+      preLoaderRoute: typeof AuthedPlanningRouteImport
+      parentRoute: typeof AuthedRoute
+    }
     '/_authed/print': {
       id: '/_authed/print'
       path: '/print'
@@ -152,16 +229,64 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthedSettingsRouteImport
       parentRoute: typeof AuthedRoute
     }
+    '/_authed/planning/': {
+      id: '/_authed/planning/'
+      path: '/'
+      fullPath: '/planning/'
+      preLoaderRoute: typeof AuthedPlanningIndexRouteImport
+      parentRoute: typeof AuthedPlanningRoute
+    }
+    '/_authed/planning/library': {
+      id: '/_authed/planning/library'
+      path: '/library'
+      fullPath: '/planning/library'
+      preLoaderRoute: typeof AuthedPlanningLibraryRouteImport
+      parentRoute: typeof AuthedPlanningRoute
+    }
+    '/_authed/planning/routines': {
+      id: '/_authed/planning/routines'
+      path: '/routines'
+      fullPath: '/planning/routines'
+      preLoaderRoute: typeof AuthedPlanningRoutinesRouteImport
+      parentRoute: typeof AuthedPlanningRoute
+    }
+    '/_authed/planning/units': {
+      id: '/_authed/planning/units'
+      path: '/units'
+      fullPath: '/planning/units'
+      preLoaderRoute: typeof AuthedPlanningUnitsRouteImport
+      parentRoute: typeof AuthedPlanningRoute
+    }
   }
 }
 
+interface AuthedPlanningRouteChildren {
+  AuthedPlanningLibraryRoute: typeof AuthedPlanningLibraryRoute
+  AuthedPlanningRoutinesRoute: typeof AuthedPlanningRoutinesRoute
+  AuthedPlanningUnitsRoute: typeof AuthedPlanningUnitsRoute
+  AuthedPlanningIndexRoute: typeof AuthedPlanningIndexRoute
+}
+
+const AuthedPlanningRouteChildren: AuthedPlanningRouteChildren = {
+  AuthedPlanningLibraryRoute: AuthedPlanningLibraryRoute,
+  AuthedPlanningRoutinesRoute: AuthedPlanningRoutinesRoute,
+  AuthedPlanningUnitsRoute: AuthedPlanningUnitsRoute,
+  AuthedPlanningIndexRoute: AuthedPlanningIndexRoute,
+}
+
+const AuthedPlanningRouteWithChildren = AuthedPlanningRoute._addFileChildren(
+  AuthedPlanningRouteChildren,
+)
+
 interface AuthedRouteChildren {
+  AuthedPlanningRoute: typeof AuthedPlanningRouteWithChildren
   AuthedPrintRoute: typeof AuthedPrintRoute
   AuthedSettingsRoute: typeof AuthedSettingsRoute
   AuthedIndexRoute: typeof AuthedIndexRoute
 }
 
 const AuthedRouteChildren: AuthedRouteChildren = {
+  AuthedPlanningRoute: AuthedPlanningRouteWithChildren,
   AuthedPrintRoute: AuthedPrintRoute,
   AuthedSettingsRoute: AuthedSettingsRoute,
   AuthedIndexRoute: AuthedIndexRoute,

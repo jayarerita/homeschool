@@ -1,12 +1,27 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { GraduationCap, Printer, Settings } from "lucide-react";
+import {
+	CalendarRange,
+	GraduationCap,
+	Plus,
+	Printer,
+	Settings,
+} from "lucide-react";
 import { useState } from "react";
+import ActivityForm, { toActivityDraft } from "~/components/ActivityForm";
 import AgendaItemCard from "~/components/AgendaItem";
 import CalendarDropdown from "~/components/CalendarDropdown";
 import ChatPanel from "~/components/ChatPanel";
+import DayContext from "~/components/DayContext";
+import Modal from "~/components/Modal";
 import UserMenu from "~/components/UserMenu";
-import { getAgendaForDate, toDateKey } from "~/lib/agenda";
+import { type AgendaItem, getAgendaForDate, toDateKey } from "~/lib/agenda";
+import {
+	createAgendaItem,
+	deleteAgendaItem,
+	moveAgendaItem,
+	updateAgendaItem,
+} from "~/lib/agenda-mutations";
 import { colorClasses } from "~/lib/colors";
 
 export const Route = createFileRoute("/_authed/")({ component: HomeschoolApp });
@@ -15,6 +30,8 @@ function HomeschoolApp() {
 	const [selectedDate, setSelectedDate] = useState(new Date());
 	const [activeChildId, setActiveChildId] = useState<string | null>(null);
 	const [chatOpen, setChatOpen] = useState(false);
+	const [editing, setEditing] = useState<AgendaItem | "new" | null>(null);
+	const queryClient = useQueryClient();
 
 	const dateKey = toDateKey(selectedDate);
 
@@ -25,6 +42,13 @@ function HomeschoolApp() {
 
 	const allChildren = data?.children ?? [];
 	const rawItems = data?.items ?? [];
+	const refresh = () =>
+		queryClient.invalidateQueries({ queryKey: ["agenda", dateKey] });
+
+	async function move(index: number, delta: -1 | 1) {
+		await moveAgendaItem(rawItems, index, delta);
+		await refresh();
+	}
 
 	// When a child filter is active, hide items assigned to other children
 	const items = rawItems.filter((item) => {
@@ -49,6 +73,14 @@ function HomeschoolApp() {
 								Homeschool
 							</span>
 							<div className="flex items-center gap-1">
+								<Link
+									to="/planning"
+									aria-label="Planning"
+									title="Routines, learning units and resources"
+									className="rounded-lg p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600"
+								>
+									<CalendarRange className="h-4 w-4" />
+								</Link>
 								<Link
 									to="/settings"
 									aria-label="Household settings"
@@ -110,16 +142,34 @@ function HomeschoolApp() {
 								<h1 className="text-2xl font-bold text-slate-800">
 									Daily Agenda
 								</h1>
-								<Link
-									to="/print"
-									search={{ date: dateKey }}
-									target="_blank"
-									className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-slate-400 transition hover:bg-slate-100 hover:text-slate-600"
-								>
-									<Printer className="h-3.5 w-3.5" />
-									Print
-								</Link>
+								<div className="flex items-center gap-1">
+									<Link
+										to="/print"
+										search={{ date: dateKey }}
+										target="_blank"
+										className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-slate-400 transition hover:bg-slate-100 hover:text-slate-600"
+									>
+										<Printer className="h-3.5 w-3.5" />
+										Print
+									</Link>
+									<button
+										type="button"
+										onClick={() => setEditing("new")}
+										className="flex items-center gap-1 rounded-lg bg-indigo-600 px-2.5 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:bg-indigo-700"
+									>
+										<Plus className="h-3.5 w-3.5" />
+										Add
+									</button>
+								</div>
 							</div>
+							{data && (
+								<DayContext
+									dateKey={dateKey}
+									items={rawItems}
+									allChildren={allChildren}
+									onChanged={refresh}
+								/>
+							)}
 							{isLoading ? (
 								<div className="flex items-center justify-center py-16 text-slate-400">
 									Loading…
@@ -134,19 +184,36 @@ function HomeschoolApp() {
 										Nothing planned for this day yet
 									</p>
 									<p className="text-sm text-slate-400">
-										Plans will appear here once they're added or imported.
+										Use Add, or add this day's routines above.
 									</p>
 								</div>
 							) : (
 								<div className="space-y-4 pb-4">
-									{items.map((item) => (
-										<AgendaItemCard
-											key={item.id}
-											item={item}
-											allChildren={allChildren}
-											activeChildId={activeChildId}
-										/>
-									))}
+									{items.map((item) => {
+										// Reordering works on the full day, so it's
+										// only offered when no child filter is active.
+										const index = rawItems.indexOf(item);
+										const canMove = activeChildId === null;
+										return (
+											<AgendaItemCard
+												key={item.id}
+												item={item}
+												allChildren={allChildren}
+												activeChildId={activeChildId}
+												onEdit={() => setEditing(item)}
+												onMoveUp={
+													canMove && index > 0
+														? () => move(index, -1)
+														: undefined
+												}
+												onMoveDown={
+													canMove && index < rawItems.length - 1
+														? () => move(index, 1)
+														: undefined
+												}
+											/>
+										);
+									})}
 								</div>
 							)}
 						</div>
@@ -177,6 +244,38 @@ function HomeschoolApp() {
 					<ChatPanel variant="sidebar" />
 				</aside>
 			</div>
+
+			{editing && (
+				<Modal
+					title={editing === "new" ? "Add activity" : "Edit activity"}
+					onClose={() => setEditing(null)}
+				>
+					<ActivityForm
+						initial={toActivityDraft(editing === "new" ? undefined : editing)}
+						household={allChildren}
+						submitLabel={editing === "new" ? "Add" : "Save"}
+						onCancel={() => setEditing(null)}
+						onSubmit={async (draft) => {
+							if (editing === "new") {
+								await createAgendaItem(dateKey, rawItems, draft);
+							} else {
+								await updateAgendaItem(editing, rawItems, draft);
+							}
+							await refresh();
+							setEditing(null);
+						}}
+						onDelete={
+							editing === "new"
+								? undefined
+								: async () => {
+										await deleteAgendaItem(editing.id);
+										await refresh();
+										setEditing(null);
+									}
+						}
+					/>
+				</Modal>
+			)}
 		</div>
 	);
 }

@@ -1,10 +1,16 @@
 import {
+	ArrowDown,
+	ArrowUp,
+	BookOpen,
 	Check,
 	ChevronDown,
 	ChevronRight,
 	Copy,
 	FileText,
 	Link,
+	Package,
+	Paperclip,
+	Pencil,
 	StickyNote,
 	Video,
 } from "lucide-react";
@@ -12,12 +18,15 @@ import { useState } from "react";
 import type { AgendaItem, Child, Resource } from "~/lib/agenda";
 import { formatTimeRange } from "~/lib/agenda";
 import { colorClasses } from "~/lib/colors";
+import { openFile } from "~/lib/files";
 
 const RESOURCE_ICONS = {
 	pdf: FileText,
 	video: Video,
 	link: Link,
 	note: StickyNote,
+	book: BookOpen,
+	material: Package,
 };
 
 // Children assigned to an item or resource, in household order. Only shown in
@@ -103,6 +112,7 @@ function ResourceCard({
 	const hasDetail =
 		resource.description ||
 		resource.url ||
+		resource.s3Key ||
 		(resource.prompts && resource.prompts.length > 0);
 
 	return (
@@ -143,6 +153,16 @@ function ResourceCard({
 							Open link
 						</a>
 					)}
+					{resource.s3Key && (
+						<button
+							type="button"
+							onClick={() => resource.s3Key && openFile(resource.s3Key)}
+							className="mb-2 ml-3 inline-flex items-center gap-1 text-xs font-medium text-indigo-500 hover:underline"
+						>
+							<Paperclip className="h-3 w-3" />
+							Open file
+						</button>
+					)}
 					{resource.prompts && resource.prompts.length > 0 && (
 						<>
 							<p className="mb-1 text-[10px] font-bold uppercase tracking-wider text-indigo-400">
@@ -169,10 +189,16 @@ export default function AgendaItemCard({
 	item,
 	allChildren = [],
 	activeChildId = null,
+	onEdit,
+	onMoveUp,
+	onMoveDown,
 }: {
 	item: AgendaItem;
 	allChildren?: Child[];
 	activeChildId?: string | null;
+	onEdit?: () => void;
+	onMoveUp?: () => void;
+	onMoveDown?: () => void;
 }) {
 	const [expanded, setExpanded] = useState(false);
 
@@ -226,6 +252,42 @@ export default function AgendaItemCard({
 
 			{expanded && (
 				<div className="border-t border-slate-100 bg-slate-50 p-4">
+					{(onEdit || onMoveUp || onMoveDown) && (
+						<div className="-mt-1 mb-3 flex justify-end gap-1">
+							{onMoveUp && (
+								<button
+									type="button"
+									onClick={onMoveUp}
+									aria-label="Move earlier"
+									title="Move earlier"
+									className="rounded-lg p-1.5 text-slate-400 hover:bg-white hover:text-slate-600"
+								>
+									<ArrowUp className="h-4 w-4" />
+								</button>
+							)}
+							{onMoveDown && (
+								<button
+									type="button"
+									onClick={onMoveDown}
+									aria-label="Move later"
+									title="Move later"
+									className="rounded-lg p-1.5 text-slate-400 hover:bg-white hover:text-slate-600"
+								>
+									<ArrowDown className="h-4 w-4" />
+								</button>
+							)}
+							{onEdit && (
+								<button
+									type="button"
+									onClick={onEdit}
+									className="flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-semibold text-indigo-600 hover:bg-white"
+								>
+									<Pencil className="h-3.5 w-3.5" />
+									Edit
+								</button>
+							)}
+						</div>
+					)}
 					{time && (
 						<>
 							<p className="text-xs font-bold uppercase tracking-wider text-indigo-500">
