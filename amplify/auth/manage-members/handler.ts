@@ -93,8 +93,13 @@ export const handler: AppSyncResolverHandler<Args, unknown> = async (event) => {
 	// AppSync already restricts these operations to the ADMIN group.
 	const caller = (event.identity as AppSyncIdentityCognito).username;
 	const args = event.arguments;
+	// Amplify's generated resolver puts fieldName at the top level of the
+	// payload rather than under `info`, despite the AppSyncResolverHandler type.
+	const fieldName =
+		(event as unknown as { fieldName?: string }).fieldName ??
+		event.info?.fieldName;
 
-	switch (event.info.fieldName) {
+	switch (fieldName) {
 		case "listMembers":
 			return listMembers();
 
@@ -138,6 +143,6 @@ export const handler: AppSyncResolverHandler<Args, unknown> = async (event) => {
 		}
 
 		default:
-			throw new Error(`Unknown operation: ${event.info.fieldName}`);
+			throw new Error(`Unknown operation: ${fieldName}`);
 	}
 };
