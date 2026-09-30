@@ -3,6 +3,8 @@ import { ArrowLeft } from "lucide-react";
 import ChildrenSettings from "~/components/settings/ChildrenSettings";
 import ImportSettings from "~/components/settings/ImportSettings";
 import MembersSettings from "~/components/settings/MembersSettings";
+import NotificationSettings from "~/components/settings/NotificationSettings";
+import PlannerSettings from "~/components/settings/PlannerSettings";
 import UserMenu from "~/components/UserMenu";
 import { useAuthContext } from "~/hooks/useAuth";
 
@@ -30,6 +32,8 @@ function SettingsPage() {
 			<main className="mx-auto max-w-2xl space-y-4 px-4 py-6">
 				<h1 className="px-1 text-2xl font-bold text-slate-800">Household</h1>
 				<ChildrenSettings />
+				<NotificationSettings />
+				<PlannerSettings />
 				{isAdmin && <MembersSettings />}
 				<ImportSettings />
 			</main>

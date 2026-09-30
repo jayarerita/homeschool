@@ -2,6 +2,7 @@ import { defineBackend } from "@aws-amplify/backend";
 import { PolicyStatement } from "aws-cdk-lib/aws-iam";
 import { auth } from "./auth/resource";
 import { data } from "./data/resource";
+import { householdJobs } from "./functions/household-jobs/resource";
 import { tutorTurn } from "./functions/tutor-turn/resource";
 import { storage } from "./storage/resource";
 
@@ -10,6 +11,7 @@ export const backend = defineBackend({
 	data,
 	storage,
 	tutorTurn,
+	householdJobs,
 });
 
 // The tutor reads household uploads and keeps verbatim conversation
@@ -21,11 +23,29 @@ bucket.grantRead(tutorLambda, "uploads/*");
 bucket.grantReadWrite(tutorLambda, "tutor/*");
 backend.tutorTurn.addEnvironment("HOUSEHOLD_BUCKET", bucket.bucketName);
 
+// The household jobs (planner, reminders) read uploads through the tutor's
+// tools, and keep the generated Web Push keys under system/.
+const jobsLambda = backend.householdJobs.resources.lambda;
+bucket.grantRead(jobsLambda, "uploads/*");
+bucket.grantReadWrite(jobsLambda, "system/*");
+backend.householdJobs.addEnvironment("HOUSEHOLD_BUCKET", bucket.bucketName);
+
 // Claude in Amazon Bedrock (the default provider; see
-// amplify/functions/tutor-turn/resource.ts).
-tutorLambda.addToRolePolicy(
+// amplify/functions/tutor-core/environment.ts).
+for (const lambda of [tutorLambda, jobsLambda]) {
+	lambda.addToRolePolicy(
+		new PolicyStatement({
+			actions: ["bedrock-mantle:CreateInference"],
+			resources: ["*"],
+		}),
+	);
+}
+
+// Optional email notifications through Amazon SES (off until a sender address
+// is set in household settings).
+jobsLambda.addToRolePolicy(
 	new PolicyStatement({
-		actions: ["bedrock-mantle:CreateInference"],
+		actions: ["ses:SendEmail"],
 		resources: ["*"],
 	}),
 );

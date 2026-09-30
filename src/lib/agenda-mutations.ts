@@ -119,3 +119,60 @@ export async function applyRoutines(
 		current = [...current, created];
 	}
 }
+
+export type Engagement = "low" | "medium" | "high";
+
+// A parent's quick note on how an activity went: one observation per child it
+// was for (everyone, if it wasn't assigned), and the activity marked done.
+export async function recordFeedback(
+	item: AgendaItem,
+	childIds: string[],
+	engagement: Engagement,
+	note: string,
+	author: string,
+): Promise<void> {
+	const text = note.trim() || `Engagement was ${engagement}.`;
+	for (const childId of childIds) {
+		unwrap(
+			await client.models.Observation.create({
+				childId,
+				date: item.date,
+				agendaItemId: item.id,
+				note: `${item.title}: ${text}`,
+				engagement,
+				recordedBy: author,
+			}),
+		);
+	}
+	unwrap(
+		await client.models.AgendaItem.update({ id: item.id, status: "done" }),
+	);
+}
+
+// Asks the planner to draft (or add to) a day in the background. The day's
+// DayPlan.summary is cleared, then set again when the draft is finished.
+export async function requestDraft(date: string): Promise<void> {
+	unwrap(await client.mutations.draftDay({ date }));
+}
+
+export async function publishDay(date: string): Promise<void> {
+	unwrap(await client.models.DayPlan.update({ date, status: "published" }));
+}
+
+// Removes the tutor's suggested activities from a draft day and keeps
+// everything else (routines, parents' own additions).
+export async function discardDraft(
+	date: string,
+	items: readonly AgendaItem[],
+): Promise<void> {
+	for (const item of items.filter((i) => i.source === "agent")) {
+		unwrap(await client.models.AgendaItem.delete({ id: item.id }));
+	}
+	unwrap(
+		await client.models.DayPlan.update({
+			date,
+			status: "published",
+			summary: null,
+		}),
+	);
+}

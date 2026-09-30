@@ -194,6 +194,7 @@ export default function AgendaItemCard({
 	onMoveUp,
 	onMoveDown,
 	onTeach,
+	footer,
 }: {
 	item: AgendaItem;
 	allChildren?: Child[];
@@ -202,6 +203,8 @@ export default function AgendaItemCard({
 	onMoveUp?: () => void;
 	onMoveDown?: () => void;
 	onTeach?: () => void;
+	// Rendered at the bottom of the expanded card (e.g. feedback).
+	footer?: React.ReactNode;
 }) {
 	const [expanded, setExpanded] = useState(false);
 
@@ -339,6 +342,7 @@ export default function AgendaItemCard({
 							</div>
 						</>
 					)}
+					{footer}
 				</div>
 			)}
 		</div>

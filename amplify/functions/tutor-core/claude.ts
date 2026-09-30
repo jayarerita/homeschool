@@ -5,7 +5,7 @@ import Anthropic, {
 } from "@anthropic-ai/sdk";
 import type { BetaMessageStream } from "@anthropic-ai/sdk/lib/BetaMessageStream";
 
-// Provider and model are set at deploy time; see ./resource.ts.
+// Provider and model are set at deploy time; see ./environment.ts.
 const provider =
 	process.env.TUTOR_PROVIDER === "anthropic" ? "anthropic" : "bedrock";
 

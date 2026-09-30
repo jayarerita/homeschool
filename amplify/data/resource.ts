@@ -1,6 +1,7 @@
 import { a, type ClientSchema, defineData } from "@aws-amplify/backend";
 import { GROUPS } from "../auth/groups";
 import { manageMembers } from "../auth/manage-members/resource";
+import { householdJobs } from "../functions/household-jobs/resource";
 import { tutorTurn } from "../functions/tutor-turn/resource";
 import { COLOR_TOKENS } from "./colors";
 
@@ -218,6 +219,101 @@ const schema = a
 			.authorization((allow) => [allow.group(GROUPS.parent)])
 			.handler(a.handler.function(tutorTurn).async()),
 
+		// ── Planner and notifications ──
+		// One record (id "household") with settings for scheduled jobs. Times
+		// are hours (0-23) in the household's time zone.
+		HouseholdSettings: a
+			.model({
+				timeZone: a.string(),
+				// Origin of the web app, for links in notifications.
+				appUrl: a.string(),
+				plannerEnabled: a.boolean().default(true),
+				planDaysAhead: a.integer().default(1),
+				plannerHour: a.integer().default(16),
+				materialsHour: a.integer().default(19),
+				feedbackHour: a.integer().default(18),
+				// 0 = Sunday … 6 = Saturday
+				weeklyPreviewDay: a.integer().default(0),
+				weeklyPreviewHour: a.integer().default(17),
+				// A verified Amazon SES identity; email is off until this is set.
+				emailFrom: a.string(),
+			})
+			.authorization((allow) => [
+				allow.groups([GROUPS.parent]),
+				allow.groups([GROUPS.child, GROUPS.device]).to(["read"]),
+			]),
+
+		// In-app notifications for the household's parents. Push and email are
+		// delivered from these by the household-jobs Lambda.
+		Notification: a
+			.model({
+				type: a.enum([
+					"plan_ready",
+					"materials",
+					"feedback",
+					"weekly_preview",
+					"tutor",
+					"test",
+				]),
+				title: a.string().required(),
+				body: a.string(),
+				// In-app path to open, e.g. /?date=2026-10-01
+				url: a.string(),
+				// Prevents duplicates when an hourly job runs again.
+				dedupeKey: a.string(),
+				// Cognito usernames of parents who have read it.
+				readBy: a.string().array(),
+				// Cognito usernames it has been pushed or emailed to.
+				deliveredTo: a.string().array(),
+			})
+			.secondaryIndexes((index) => [
+				index("dedupeKey").queryField("notificationsByDedupeKey"),
+			])
+			.authorization((allow) => [allow.groups([GROUPS.parent])]),
+
+		// A browser's Web Push subscription, one per device.
+		PushSubscription: a
+			.model({
+				endpoint: a.string().required(),
+				p256dh: a.string().required(),
+				auth: a.string().required(),
+				userAgent: a.string(),
+			})
+			.authorization((allow) => [allow.owner()]),
+
+		// Each parent's own delivery preferences.
+		NotificationPrefs: a
+			.model({
+				pushEnabled: a.boolean().default(true),
+				emailEnabled: a.boolean().default(false),
+				email: a.email(),
+				// Notification types this parent doesn't want pushed or emailed.
+				mutedTypes: a.string().array(),
+				// Quiet hours (0-23, household time); held deliveries go out after.
+				quietStart: a.integer(),
+				quietEnd: a.integer(),
+			})
+			.authorization((allow) => [allow.owner()]),
+
+		pushPublicKey: a
+			.query()
+			.returns(a.string())
+			.authorization((allow) => [allow.group(GROUPS.parent)])
+			.handler(a.handler.function(householdJobs)),
+
+		sendTestNotification: a
+			.mutation()
+			.returns(a.string())
+			.authorization((allow) => [allow.group(GROUPS.parent)])
+			.handler(a.handler.function(householdJobs)),
+
+		// Asks the planner to draft a day now instead of waiting for the evening.
+		draftDay: a
+			.mutation()
+			.arguments({ date: a.date().required() })
+			.authorization((allow) => [allow.group(GROUPS.parent)])
+			.handler(a.handler.function(householdJobs).async()),
+
 		// ── Household members (Cognito users), admin only ──
 		Member: a.customType({
 			username: a.string().required(),
@@ -262,7 +358,10 @@ const schema = a
 			.handler(a.handler.function(manageMembers)),
 	})
 	// The tutor Lambda reads and writes household data with IAM.
-	.authorization((allow) => [allow.resource(tutorTurn)]);
+	.authorization((allow) => [
+		allow.resource(tutorTurn),
+		allow.resource(householdJobs),
+	]);
 
 export type Schema = ClientSchema<typeof schema>;
 

@@ -24,10 +24,11 @@ TanStack Start (Amplify Hosting SSR)
   ├─ Amplify Storage (S3)  ──► uploads (preschool newsletters, photos), generated worksheets
   └─ Service worker (PWA)  ──► Web Push
 
-Lambdas (defineFunction) — all share one "agent core"
-  ├─ tutorTurn     one chat/voice turn; invoked by an async AppSync mutation
-  ├─ planner       scheduled (nightly + Sunday): drafts upcoming days, materials, feedback asks
-  ├─ notifier      Web Push + SES email; driven by new Notification rows
+Lambdas (defineFunction) — share tutor-core/ (Claude client, context, tools, agent loop)
+  ├─ tutor-turn      one chat turn; invoked by an async AppSync mutation
+  └─ household-jobs  hourly: drafts upcoming days, feedback/materials/weekly
+                     notifications, Web Push + SES delivery; also serves
+                     pushPublicKey, sendTestNotification, draftDay
 
 Auth stack
   ├─ preSignUp        blocks self sign-up once an admin exists (invite-only)
@@ -127,13 +128,47 @@ password). Every member has exactly one base role (`PARENT`, `CHILD` or
 `DEVICE`); `ADMIN` is only valid on parents. Admins can't demote or remove
 themselves, so a household always keeps at least one admin.
 
-## Notifications
+## Planner and notifications (`amplify/functions/household-jobs/`)
 
-- PWA + service worker + Web Push (VAPID keys stored as Amplify secrets).
-  Works on desktop, Android, and iOS 16.4+ when installed to the home screen.
-- SES email fallback (new SES accounts are sandboxed; verify addresses).
-- Triggers: evening "materials for tomorrow", Sunday weekly preview,
-  "how did X go?" when an item ends without an observation, and agent questions.
+One Lambda runs **every hour** and also serves `pushPublicKey`,
+`sendTestNotification` and `draftDay` (async). Each tick reads
+`HouseholdSettings` (singleton `id: "household"`: time zone, job hours,
+planner switch, app URL, SES sender), computes the household-local hour, and
+runs whatever is due (`schedule.ts`):
+
+- **planner** (default 16:00): for the next 1-3 days without a `DayPlan`,
+  create a `draft` DayPlan, add the weekday's routines deterministically, then
+  run the tutor agent (`tutor-core/agent.ts`) with planner instructions and a
+  context focused on that day. The agent's closing summary goes into
+  `DayPlan.summary` (which also tells the app the draft finished) and a
+  `plan_ready` notification. Parents **Publish** or **Remove suggestions**
+  (deletes `source: agent` items).
+- **feedback** (18:00): today's non-routine activities that have ended without
+  an `Observation`. Parents answer with a quick engagement tap + note per
+  activity, stored as observations for the tutor.
+- **materials** (19:00): `material` resources on tomorrow's items.
+- **weekly preview** (Sunday 17:00): planned days, running units, materials.
+
+A job is due once its hour has passed; `Notification.dedupeKey` (indexed)
+stops repeats, so a missed tick catches up. The tutor and planner share
+`tutor-core/` (Claude client, context, tools, agent loop).
+
+**Delivery**: `Notification` rows are household-wide (parents only), with
+`readBy` / `deliveredTo` lists of Cognito usernames. After the jobs, each tick
+delivers notifications from the last 36 hours to every parent not yet
+delivered: skipped if already read in-app or the type is muted in their
+`NotificationPrefs`; held while they are in quiet hours. Channels:
+
+- **Web Push** via `web-push`, to each `PushSubscription` (owner-scoped; one per
+  browser). VAPID keys are generated on first use and stored in the bucket at
+  `system/vapid.json` (not browser-readable) - no setup for self-hosters.
+  Expired subscriptions (404/410) are deleted. `public/sw.js` shows the
+  notification and opens its in-app link.
+- **Email** via Amazon SES when the household has a verified sender and the
+  parent opted in.
+
+Owner-authorized records store `owner` as `sub::username` but read back as the
+username, so recipients are keyed by username throughout.
 
 ## Voice device (later)
 
@@ -175,8 +210,8 @@ depend on the input channel.
 4. **Tutor v1** — `tutor-turn` Lambda, tools, learner profiles and
    observations, live chat through AppSync subscriptions, lesson
    conversations started from an activity.
-5. **Planner + notifications** — scheduled planner, notification models, PWA,
-   Web Push, SES.
+5. **Planner + notifications** — hourly household jobs, draft-day review,
+   activity feedback, in-app notifications, Web Push, optional SES email.
 6. **Lesson mode + kid accounts** — guided session UI, kid UI, worksheet
    generation from `prompts` stored in S3.
 7. **Voice device** — device client, `DEVICE` group, voice pipeline.

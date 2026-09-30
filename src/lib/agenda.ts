@@ -7,10 +7,15 @@ export type Resource = Schema["ResourceRef"]["type"];
 export type ResourceType = NonNullable<Resource["type"]>;
 export type { ColorToken };
 
+export type DayPlan = Schema["DayPlan"]["type"];
+export type Observation = Schema["Observation"]["type"];
+
 export type DayAgenda = {
 	date: string;
 	children: Child[];
 	items: AgendaItem[];
+	plan: DayPlan | null;
+	observations: Observation[];
 };
 
 export function toDateKey(date: Date): string {
@@ -56,16 +61,23 @@ export async function listChildren(): Promise<Child[]> {
 }
 
 export async function getAgendaForDate(dateKey: string): Promise<DayAgenda> {
-	const [children, items] = await Promise.all([
+	const [children, items, plan, observations] = await Promise.all([
 		listChildren(),
 		client.models.AgendaItem.agendaItemsByDate(
 			{ date: dateKey },
 			{ sortDirection: "ASC", limit: 1000 },
 		).then(unwrap),
+		client.models.DayPlan.get({ date: dateKey }).then(unwrap),
+		client.models.Observation.list({
+			filter: { date: { eq: dateKey } },
+			limit: 1000,
+		}).then(unwrap),
 	]);
 	return {
 		date: dateKey,
 		children: children.filter((c) => !c.archived),
 		items,
+		plan,
+		observations,
 	};
 }

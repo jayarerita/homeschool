@@ -84,35 +84,70 @@ export function describeItem(item: AgendaItem, household: Household): string {
 
 // ── The per-turn context message ──
 
+// Who the tutor is working for in this turn.
+export type Audience =
+	| { kind: "parent"; name: string }
+	| {
+			kind: "lesson";
+			parentName: string;
+			childId: string | null | undefined;
+			agendaItemId: string | null | undefined;
+	  }
+	| { kind: "planner" };
+
+export function audienceFor(
+	conversation: Conversation,
+	authorName: string,
+): Audience {
+	return conversation.mode === "lesson"
+		? {
+				kind: "lesson",
+				parentName: authorName,
+				childId: conversation.childId,
+				agendaItemId: conversation.agendaItemId,
+			}
+		: { kind: "parent", name: authorName };
+}
+
 export async function buildContext({
 	client,
 	household,
-	conversation,
-	authorName,
+	audience,
 	now,
 	timeZone,
+	focusDate,
 }: {
 	client: DataClient;
 	household: Household;
-	conversation: Conversation;
-	authorName: string;
+	audience: Audience;
 	now: Date;
 	timeZone: string;
+	// The day whose plan is shown in full; defaults to today.
+	focusDate?: string;
 }): Promise<string> {
 	const today = localDateKey(now, timeZone);
+	const day = focusDate ?? today;
 	const time = now.toLocaleTimeString("en-US", {
 		timeZone,
 		hour: "numeric",
 		minute: "2-digit",
 	});
 
-	const [profiles, units, todaysItems] = await Promise.all([
+	const [profiles, units, dayItems, observations] = await Promise.all([
 		client.models.LearnerProfile.list({ limit: 1000 }).then(unwrap),
 		client.models.LearningUnit.list({ limit: 1000 }).then(unwrap),
 		client.models.AgendaItem.agendaItemsByDate(
-			{ date: today },
+			{ date: day },
 			{ sortDirection: "ASC", limit: 1000 },
 		).then(unwrap),
+		Promise.all(
+			household.children.map((c) =>
+				client.models.Observation.observationsByChild(
+					{ childId: c.id },
+					{ sortDirection: "DESC", limit: 5 },
+				).then(unwrap),
+			),
+		),
 	]);
 	const profileFor = new Map(profiles.map((p) => [p.childId, p.notes]));
 
@@ -121,14 +156,14 @@ export async function buildContext({
 		`Today is ${describeDate(today)} (${today}). Local time: ${time} (${timeZone}).`,
 	];
 
-	if (conversation.mode === "lesson") {
-		const child = household.children.find((c) => c.id === conversation.childId);
+	if (audience.kind === "lesson") {
+		const child = household.children.find((c) => c.id === audience.childId);
 		lines.push(
-			`This is a lesson conversation: you are speaking directly with ${child?.name ?? "a child"}, with ${authorName} (a parent) nearby.`,
+			`This is a lesson conversation: you are speaking directly with ${child?.name ?? "a child"}, with ${audience.parentName} (a parent) nearby.`,
 		);
-		if (conversation.agendaItemId) {
+		if (audience.agendaItemId) {
 			const item = unwrap(
-				await client.models.AgendaItem.get({ id: conversation.agendaItemId }),
+				await client.models.AgendaItem.get({ id: audience.agendaItemId }),
 			);
 			if (item) {
 				lines.push(
@@ -143,8 +178,12 @@ export async function buildContext({
 				);
 			}
 		}
+	} else if (audience.kind === "parent") {
+		lines.push(`You're talking with ${audience.name}, a parent.`);
 	} else {
-		lines.push(`You're talking with ${authorName}, a parent.`);
+		lines.push(
+			"No one is chatting: you are the household's planner, running on a schedule. Your final reply becomes a short notification to the parents.",
+		);
 	}
 
 	lines.push("", "## Children");
@@ -153,7 +192,7 @@ export async function buildContext({
 			"No children have been added yet. Parents add them in Settings → Children.",
 		);
 	}
-	for (const child of household.children) {
+	household.children.forEach((child, index) => {
 		const facts = [
 			child.birthdate &&
 				`age ${ageOn(child.birthdate, today)} (born ${child.birthdate})`,
@@ -173,7 +212,16 @@ export async function buildContext({
 		lines.push(
 			`Your learner profile: ${profile?.trim() || "(empty — start one as you learn about them)"}`,
 		);
-	}
+		const recent = observations[index] ?? [];
+		if (recent.length > 0) {
+			lines.push("Recent observations:");
+			for (const o of recent) {
+				lines.push(
+					`- ${o.date}${o.engagement ? ` (engagement: ${o.engagement})` : ""}: ${o.note}`,
+				);
+			}
+		}
+	});
 
 	// Units running now or starting in the next two weeks.
 	const horizon = addDays(today, 14);
@@ -193,10 +241,14 @@ export async function buildContext({
 		);
 	}
 
-	lines.push("", "## Today's plan");
-	if (todaysItems.length === 0) lines.push("Nothing planned yet.");
-	for (const item of todaysItems)
-		lines.push(`- ${describeItem(item, household)}`);
+	lines.push(
+		"",
+		day === today
+			? "## Today's plan"
+			: `## Plan for ${describeDate(day)} (${day})`,
+	);
+	if (dayItems.length === 0) lines.push("Nothing planned yet.");
+	for (const item of dayItems) lines.push(`- ${describeItem(item, household)}`);
 
 	lines.push("</household_context>");
 	return lines.join("\n");

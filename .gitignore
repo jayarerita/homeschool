@@ -39,3 +39,6 @@ dist
 # Local reference copy of the pre-cloud app (contains personal data)
 docs/old_app/
 docs/old_app_temp/
+
+# Local bundle checks
+tmp-*.mjs

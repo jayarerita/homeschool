@@ -5,8 +5,8 @@ and deployable to **AWS Amplify Gen 2**. One deployment serves one household.
 
 > Status: early. Authentication, household roles and member invites, child
 > profiles, the daily agenda with editing, routines, learning units, a
-> resource library, file uploads and the AI tutor are in place.
-> Notifications are coming — see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
+> resource library, file uploads, the AI tutor, a nightly planner and
+> notifications are in place. Kid accounts and the voice device are coming — see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
 > for the design and roadmap.
 
 ## Getting started
@@ -59,6 +59,31 @@ TUTOR_PROVIDER=anthropic npm run amplify:sandbox
 
 Set `TUTOR_MODEL` at deploy time to use a different model (Bedrock model IDs
 start with `anthropic.`).
+
+## Planner and notifications
+
+Every hour a scheduled function checks the household's local time and:
+
+- **drafts upcoming days** with the tutor (4 PM by default): routines plus
+  learning activities, saved as a draft you review and **Publish** (or
+  **Remove suggestions**). Empty days also have an "Ask the tutor to draft this
+  day" button.
+- asks **"How did today go?"** (6 PM): tap how an activity went and add a note;
+  the tutor reads these when planning.
+- sends **materials for tomorrow** (7 PM) and a **weekly preview** (Sunday).
+
+Times, days ahead, the time zone and the planner switch are in **Settings →
+Planner & reminders**. Notifications always appear under the bell; each parent
+can also get them as:
+
+- **Push notifications** - Settings → Notifications → This device → Turn on.
+  Works in desktop browsers and on Android. On iPhone/iPad, add the app to the
+  Home Screen first (Share → Add to Home Screen) and turn it on from there.
+  Nothing to configure: the push keys are generated automatically.
+- **Email** - set a sender address verified in Amazon SES under Planner &
+  reminders, then turn on email in your notification settings. New SES
+  accounts can only send to verified addresses until AWS grants production
+  access.
 
 ## Scripts
 
