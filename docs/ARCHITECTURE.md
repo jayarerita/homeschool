@@ -37,21 +37,42 @@ Auth stack
                       creates an auth <-> data circular dependency)
 ```
 
-### Agent core (`amplify/agent/`)
+### Tutor (`amplify/functions/tutor-turn/`)
 
-One brain used by chat, the scheduled planner and the future voice device:
+One Lambda runs a tutor turn; the planner and the voice device will reuse its
+modules (client, context, tools) rather than a second agent.
 
-- **Model client** behind a small interface. Default: Amazon Bedrock (IAM, no
-  keys). Optional: Anthropic API via `secret('ANTHROPIC_API_KEY')`. Verify the
-  Claude model IDs available in your Bedrock region before choosing one.
-- **Context** assembled per turn: today's plan, active child, learner profile,
-  active learning units, recent observations.
-- **Tools**: `getDay`, `upsertAgendaItem`, `addResource`, `searchResourceLibrary`,
-  `recordObservation`, `updateLearnerProfile`, `createNotification`,
-  `readUpload` (PDF/image uploads read directly by the model).
-- **Modes**: parent-planning (concise), lesson (guides an agenda item step by
-  step, age-appropriate, Socratic, records observations), voice style (short
-  spoken sentences, no markdown).
+- **Flow**: the browser writes the user `TutorMessage` and an empty assistant
+  `TutorMessage` (`status: pending`), then calls the `runTutorTurn` mutation,
+  which invokes the Lambda asynchronously. The Lambda streams Claude's reply
+  into the assistant message (throttled updates, `status: streaming` → `done`
+  or `error`); the UI watches with `observeQuery`.
+- **Model**: Claude Opus 5.5 with adaptive thinking at `medium` effort, via
+  Claude in Amazon Bedrock (`anthropic.claude-opus-5-5`, Lambda IAM role,
+  `bedrock-mantle:CreateInference`) by default, or the Claude API with an
+  `ANTHROPIC_API_KEY` secret (`TUTOR_PROVIDER=anthropic` at deploy time).
+  Refusal fallbacks are on: server-side `fallbacks: "default"` on the Claude
+  API, the SDK's client-side middleware (to Opus 4.8) on Bedrock.
+- **History**: each completed turn's exact API messages (user message, the
+  per-turn context message, assistant content including thinking blocks, tool
+  results) are stored in S3 at `tutor/<conversationId>/<messageId>.json` and
+  replayed unchanged on later turns - append-only, as preserved thinking and
+  prompt caching require, and without DynamoDB's 400 KB item limit. Failed or
+  refused turns are not saved. After a mid-output refusal fallback, blocks
+  before the boundary are filtered per the API rules (`echo.ts`).
+- **Context**: a stable, cached system prompt (`prompt.ts`) plus a per-turn
+  mid-conversation system message (`context.ts`) with today's date in the
+  household time zone, who is speaking, each child's details and learner
+  profile, learning units for the next two weeks, and today's plan.
+- **Tools** (`tools.ts`, zod-validated, eager input streaming): `get_agenda`,
+  `add_agenda_item`, `update_agenda_item`, `delete_agenda_item`,
+  `list_routines`, `list_learning_units`, `search_library`,
+  `add_library_resource`, `record_observation`, `get_observations`,
+  `update_learner_profile`, `read_file` (uploads only; PDFs and images are
+  passed to the model directly).
+- **Modes**: parent planning conversations, and lesson conversations started
+  from an agenda item, where the tutor speaks to the child in short, plain,
+  read-aloud-friendly sentences.
 
 Chosen over Amplify AI Kit (`a.conversation`) because the same core must be
 callable from a scheduled job and a physical device, not only a chat route.
@@ -70,8 +91,8 @@ callable from a scheduled job and a physical device, not only a chat route.
 | `LearningUnit` | what a child is doing at preschool/school: source, date range, theme, topics, notes, `attachments: Attachment[]` |
 | `Attachment` (customType) | a stored file: s3Key, name, content type |
 | `Observation` | parent feedback on an item: done, engagement, notes |
-| `LearnerProfile` | agent-maintained notes per child: skills emerging/mastered, interests, what works |
-| `Conversation` / `Message` | chat history (replaces inbox/outbox JSON + localStorage) |
+| `LearnerProfile` | tutor-maintained notes per child (keyed by child): skills emerging/mastered, interests, what works |
+| `Conversation` / `TutorMessage` | chat threads (parent or lesson mode) and the messages shown in the UI; verbatim API transcripts live in S3 (replaces inbox/outbox JSON + localStorage) |
 | `Notification` / `PushSubscription` / `NotificationPrefs` | in-app inbox, per-device push subscriptions, quiet hours and per-type toggles |
 
 Agenda items keep their order in `sortOrder` with gaps of 10; a new item is
@@ -151,8 +172,9 @@ depend on the input channel.
 3. **Planning** — add/edit/reorder/delete agenda items with resources and
    file uploads; routines (added to a day in one click); learning units with
    attachments shown on matching days; resource library.
-4. **Tutor v1** — agent core, `tutorTurn`, tools, learner profiles, live chat
-   through AppSync subscriptions.
+4. **Tutor v1** — `tutor-turn` Lambda, tools, learner profiles and
+   observations, live chat through AppSync subscriptions, lesson
+   conversations started from an activity.
 5. **Planner + notifications** — scheduled planner, notification models, PWA,
    Web Push, SES.
 6. **Lesson mode + kid accounts** — guided session UI, kid UI, worksheet

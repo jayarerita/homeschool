@@ -13,3 +13,30 @@
 		@apply mx-auto max-w-md;
 	}
 }
+
+/* Tutor replies (markdown) */
+@layer components {
+	.tutor-markdown > * + * {
+		@apply mt-2;
+	}
+	.tutor-markdown ul {
+		@apply list-disc pl-5;
+	}
+	.tutor-markdown ol {
+		@apply list-decimal pl-5;
+	}
+	.tutor-markdown li + li {
+		@apply mt-0.5;
+	}
+	.tutor-markdown strong {
+		@apply font-semibold text-slate-800;
+	}
+	.tutor-markdown h1,
+	.tutor-markdown h2,
+	.tutor-markdown h3 {
+		@apply font-semibold text-slate-800;
+	}
+	.tutor-markdown a {
+		@apply text-indigo-600 underline;
+	}
+}

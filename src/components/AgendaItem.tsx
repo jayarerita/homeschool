@@ -7,6 +7,7 @@ import {
 	ChevronRight,
 	Copy,
 	FileText,
+	GraduationCap,
 	Link,
 	Package,
 	Paperclip,
@@ -192,6 +193,7 @@ export default function AgendaItemCard({
 	onEdit,
 	onMoveUp,
 	onMoveDown,
+	onTeach,
 }: {
 	item: AgendaItem;
 	allChildren?: Child[];
@@ -199,6 +201,7 @@ export default function AgendaItemCard({
 	onEdit?: () => void;
 	onMoveUp?: () => void;
 	onMoveDown?: () => void;
+	onTeach?: () => void;
 }) {
 	const [expanded, setExpanded] = useState(false);
 
@@ -252,8 +255,19 @@ export default function AgendaItemCard({
 
 			{expanded && (
 				<div className="border-t border-slate-100 bg-slate-50 p-4">
-					{(onEdit || onMoveUp || onMoveDown) && (
+					{(onEdit || onMoveUp || onMoveDown || onTeach) && (
 						<div className="-mt-1 mb-3 flex justify-end gap-1">
+							{onTeach && (
+								<button
+									type="button"
+									onClick={onTeach}
+									title="Open a lesson conversation where the tutor guides your child through this activity"
+									className="mr-auto flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-semibold text-amber-700 hover:bg-white"
+								>
+									<GraduationCap className="h-3.5 w-3.5" />
+									Start a lesson
+								</button>
+							)}
 							{onMoveUp && (
 								<button
 									type="button"

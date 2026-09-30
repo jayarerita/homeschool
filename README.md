@@ -5,8 +5,8 @@ and deployable to **AWS Amplify Gen 2**. One deployment serves one household.
 
 > Status: early. Authentication, household roles and member invites, child
 > profiles, the daily agenda with editing, routines, learning units, a
-> resource library and file uploads are in place. The tutor agent and
-> notifications are coming — see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
+> resource library, file uploads and the AI tutor are in place.
+> Notifications are coming — see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
 > for the design and roadmap.
 
 ## Getting started
@@ -39,6 +39,26 @@ password.
 Children, their label colors, birthdays and other details are set up in
 **Settings → Children**. Data from the pre-cloud local app can be loaded in
 **Settings → Import**.
+
+## The tutor
+
+The tutor runs on Claude. By default it uses **Claude in Amazon Bedrock** with
+the backend's own IAM role - no API key needed:
+
+1. In the AWS console, open **Amazon Bedrock → Model access** in the region you
+   deploy to and make sure **Claude Opus 5.5** is enabled (Claude Opus 4.8,
+   used as a fallback, is open to all accounts).
+2. Deploy (`npm run amplify:sandbox`). The tutor appears in the chat panel.
+
+To use the Claude API instead:
+
+```bash
+npx ampx sandbox secret set ANTHROPIC_API_KEY
+TUTOR_PROVIDER=anthropic npm run amplify:sandbox
+```
+
+Set `TUTOR_MODEL` at deploy time to use a different model (Bedrock model IDs
+start with `anthropic.`).
 
 ## Scripts
 
