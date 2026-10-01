@@ -111,12 +111,8 @@ export const handler = async (event: AppSyncEvent) => {
 					force: true,
 				});
 			} catch (e) {
+				// draftDay has recorded the failure on the day for the app to show.
 				console.error("Draft failed", e);
-				// Let the app stop waiting and say what happened.
-				await client.models.DayPlan.update({
-					date,
-					summary: `The draft didn't finish: ${e instanceof Error ? e.message : String(e)}`,
-				});
 			}
 			return;
 		}

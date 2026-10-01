@@ -1,5 +1,6 @@
 import type { Schema } from "../../data/resource";
-import { Anthropic, runAgent } from "../tutor-core/agent";
+import { runAgent } from "../tutor-core/agent";
+import { describeClaudeError } from "../tutor-core/claude";
 import {
 	audienceFor,
 	buildContext,
@@ -150,12 +151,7 @@ export const handler: Schema["runTutorTurn"]["functionHandler"] = async (
 	} catch (err) {
 		console.error("Tutor turn failed", err);
 		await stopFlushing();
-		const message =
-			err instanceof Anthropic.APIError
-				? `The tutor service returned an error (${err.status ?? "network"}).`
-				: err instanceof Error
-					? err.message
-					: String(err);
+		const message = describeClaudeError(err);
 		await update({
 			text: liveText.trim(),
 			status: "error",

@@ -37,9 +37,15 @@ export class Claude {
 			// Signs requests with the Lambda role's credentials.
 			this.#bedrock = new AnthropicBedrockMantle({
 				awsRegion: process.env.AWS_REGION,
-				middleware: [
-					betaRefusalFallbackMiddleware([{ model: BEDROCK_FALLBACK_MODEL }]),
-				],
+				// No fallback when the fallback model is the main model.
+				middleware:
+					MODEL === BEDROCK_FALLBACK_MODEL
+						? []
+						: [
+								betaRefusalFallbackMiddleware([
+									{ model: BEDROCK_FALLBACK_MODEL },
+								]),
+							],
 			});
 		}
 	}
@@ -58,6 +64,17 @@ export class Claude {
 			fallbackState: this.#fallbackState,
 		});
 	}
+}
+
+// A readable message for a failed Claude request, using the API's own error
+// message when there is one (e.g. "model is not available for this account").
+export function describeClaudeError(err: unknown): string {
+	if (err instanceof Anthropic.APIError) {
+		const body = err.error as { error?: { message?: string } } | undefined;
+		const detail = body?.error?.message ?? err.message;
+		return `The tutor service returned an error (${err.status ?? "network"}): ${detail}`;
+	}
+	return err instanceof Error ? err.message : String(err);
 }
 
 export { Anthropic };

@@ -233,6 +233,10 @@ function HomeschoolApp() {
 									items={rawItems}
 									drafting={awaitingDraft === dateKey}
 									onChanged={refresh}
+									onRetry={async () => {
+										setAwaitingDraft(dateKey);
+										await refresh();
+									}}
 								/>
 							)}
 							{search.feedback && rawItems.length > 0 && (

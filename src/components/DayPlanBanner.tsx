@@ -1,7 +1,8 @@
-import { Loader2, Sparkles } from "lucide-react";
+import { AlertTriangle, Loader2, Sparkles } from "lucide-react";
 import { useState } from "react";
 import type { AgendaItem, DayPlan } from "~/lib/agenda";
 import { discardDraft, publishDay, requestDraft } from "~/lib/agenda-mutations";
+import { draftFailure } from "../../amplify/data/day-plan";
 
 // The tutor is working on this day: a draft with no summary yet.
 export function isDrafting(plan: DayPlan | null | undefined): boolean {
@@ -14,6 +15,7 @@ export default function DayPlanBanner({
 	items,
 	drafting = false,
 	onChanged,
+	onRetry,
 }: {
 	date: string;
 	plan: DayPlan | null;
@@ -21,6 +23,8 @@ export default function DayPlanBanner({
 	// A draft was requested from this page and hasn't started showing yet.
 	drafting?: boolean;
 	onChanged: () => Promise<unknown>;
+	// Called after a new draft is requested from the failure banner.
+	onRetry: () => Promise<unknown>;
 }) {
 	const [busy, setBusy] = useState(false);
 	const [error, setError] = useState<string | null>(null);
@@ -43,6 +47,47 @@ export default function DayPlanBanner({
 			<div className="mb-4 flex items-center gap-3 rounded-2xl border border-violet-100 bg-violet-50 px-4 py-3 text-sm text-violet-900">
 				<Loader2 className="h-4 w-4 flex-shrink-0 animate-spin text-violet-500" />
 				The tutor is drafting this day. This usually takes a minute or two.
+			</div>
+		);
+	}
+
+	const failure = draftFailure(plan?.summary);
+	if (failure) {
+		return (
+			<div className="mb-4 rounded-2xl border border-red-100 bg-red-50 px-4 py-3 text-sm">
+				<div className="flex items-start gap-3">
+					<AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0 text-red-500" />
+					<div className="min-w-0 flex-1">
+						<p className="font-semibold text-red-900">
+							The tutor couldn't draft this day
+						</p>
+						<p className="mt-0.5 break-words text-red-800/80">{failure}</p>
+					</div>
+				</div>
+				<div className="mt-3 flex flex-wrap justify-end gap-2">
+					<button
+						type="button"
+						disabled={busy}
+						onClick={() => run(() => publishDay(date))}
+						className="rounded-xl px-3 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-100 disabled:opacity-50"
+					>
+						Keep what's here
+					</button>
+					<button
+						type="button"
+						disabled={busy}
+						onClick={() =>
+							run(async () => {
+								await requestDraft(date);
+								await onRetry();
+							})
+						}
+						className="rounded-xl bg-red-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-red-700 disabled:opacity-50"
+					>
+						Try again
+					</button>
+				</div>
+				{error && <p className="mt-2 text-xs text-red-600">{error}</p>}
 			</div>
 		);
 	}

@@ -1,6 +1,8 @@
 import { pendingRoutines, planInsert } from "../../../src/lib/planning";
+import { DRAFT_FAILED_PREFIX } from "../../data/day-plan";
 import type { Schema } from "../../data/resource";
 import { replyText, runAgent } from "../tutor-core/agent";
+import { describeClaudeError } from "../tutor-core/claude";
 import {
 	buildContext,
 	describeDate,
@@ -82,29 +84,40 @@ export async function draftDay(
 		unwrap(await client.models.DayPlan.create({ date, status: "draft" }));
 	}
 
-	await addRoutines(client, date);
-	const household = await loadHousehold(client);
-	const context = await buildContext({
-		client,
-		household,
-		audience: { kind: "planner" },
-		now,
-		timeZone: settings.timeZone,
-		focusDate: date,
-	});
-	const turn: Parameters<typeof runAgent>[0]["turn"] = [
-		{ role: "user", content: [{ type: "text", text: instructions(date) }] },
-		{ role: "system", content: context },
-	];
-	const outcome = await runAgent({
-		turn,
-		toolContext: { client, household, today: date, activity: [] },
-	});
-	const summary =
-		outcome === "refused"
-			? "The tutor couldn't draft this day. Add activities yourself or ask the tutor in chat."
-			: replyText(turn).split("\n\n").at(-1)?.trim() ||
-				"A draft plan is ready.";
+	let summary: string;
+	try {
+		await addRoutines(client, date);
+		const household = await loadHousehold(client);
+		const context = await buildContext({
+			client,
+			household,
+			audience: { kind: "planner" },
+			now,
+			timeZone: settings.timeZone,
+			focusDate: date,
+		});
+		const turn: Parameters<typeof runAgent>[0]["turn"] = [
+			{ role: "user", content: [{ type: "text", text: instructions(date) }] },
+			{ role: "system", content: context },
+		];
+		const outcome = await runAgent({
+			turn,
+			toolContext: { client, household, today: date, activity: [] },
+		});
+		summary =
+			outcome === "refused"
+				? "The tutor couldn't draft this day. Add activities yourself or ask the tutor in chat."
+				: replyText(turn).split("\n\n").at(-1)?.trim() ||
+					"A draft plan is ready.";
+	} catch (e) {
+		// Record the failure so the app stops showing "drafting" and can offer a
+		// retry; the scheduled run logs it and moves on.
+		await client.models.DayPlan.update({
+			date,
+			summary: `${DRAFT_FAILED_PREFIX}${describeClaudeError(e)}`,
+		});
+		throw e;
+	}
 
 	// The summary also tells the app the draft has finished.
 	unwrap(await client.models.DayPlan.update({ date, summary }));

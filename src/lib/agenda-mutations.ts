@@ -152,6 +152,12 @@ export async function recordFeedback(
 // Asks the planner to draft (or add to) a day in the background. The day's
 // DayPlan.summary is cleared, then set again when the draft is finished.
 export async function requestDraft(date: string): Promise<void> {
+	// Clear a previous result (e.g. a failed draft) so the app shows the new
+	// draft as in progress straight away.
+	const existing = unwrap(await client.models.DayPlan.get({ date }));
+	if (existing?.summary) {
+		unwrap(await client.models.DayPlan.update({ date, summary: null }));
+	}
 	unwrap(await client.mutations.draftDay({ date }));
 }
 
