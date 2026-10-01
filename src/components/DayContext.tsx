@@ -92,7 +92,8 @@ export default function DayContext({
 							{pending.length} routine{pending.length === 1 ? "" : "s"}
 						</span>{" "}
 						<span className="text-indigo-800/80">
-							usually happen today: {pending.map((r) => r.title).join(", ")}
+							usually {pending.length === 1 ? "happens" : "happen"} today:{" "}
+							{pending.map((r) => r.title).join(", ")}
 						</span>
 						{error && <span className="block text-red-600">{error}</span>}
 					</p>

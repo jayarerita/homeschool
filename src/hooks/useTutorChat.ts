@@ -39,6 +39,17 @@ function timeZone(): string {
 	return Intl.DateTimeFormat().resolvedOptions().timeZone;
 }
 
+// A reply that hasn't changed for this long is treated as failed, so a
+// backend problem can't lock the chat; the parent can try again.
+const STALL_MS = 3 * 60 * 1000;
+
+export function isStalled(message: TutorMessage, now: number): boolean {
+	return (
+		(message.status === "pending" || message.status === "streaming") &&
+		now - new Date(message.updatedAt).getTime() > STALL_MS
+	);
+}
+
 // Chat state for the tutor panel. Messages stream in through an AppSync
 // subscription: the tutor Lambda writes its reply into the assistant message
 // as it's generated.
@@ -54,17 +65,29 @@ export function useTutorChat() {
 	const [conversationId, setConversationId] = useState<string | null>(null);
 	const [messages, setMessages] = useState<TutorMessage[]>([]);
 	const [error, setError] = useState<string | null>(null);
+	// Only reopen a conversation automatically once, on load; after that a
+	// null conversation means the parent chose "New conversation".
+	const [restored, setRestored] = useState(false);
+	// Re-evaluates stalled replies as time passes.
+	const [now, setNow] = useState(() => Date.now());
+
+	useEffect(() => {
+		const timer = setInterval(() => setNow(Date.now()), 15_000);
+		return () => clearInterval(timer);
+	}, []);
 
 	// Reopen the last conversation, or the most recent one.
 	useEffect(() => {
-		if (conversationId || conversations.length === 0) return;
+		if (restored || conversations.length === 0) return;
+		setRestored(true);
+		if (conversationId) return;
 		const recalled = recalledConversation();
 		setConversationId(
 			conversations.find((c) => c.id === recalled)?.id ??
 				conversations[0]?.id ??
 				null,
 		);
-	}, [conversations, conversationId]);
+	}, [conversations, conversationId, restored]);
 
 	useEffect(() => {
 		setMessages([]);
@@ -84,10 +107,13 @@ export function useTutorChat() {
 	const conversation =
 		conversations.find((c) => c.id === conversationId) ?? null;
 	const busy = messages.some(
-		(m) => m.status === "pending" || m.status === "streaming",
+		(m) =>
+			(m.status === "pending" || m.status === "streaming") &&
+			!isStalled(m, now),
 	);
 
 	function select(id: string | null) {
+		setRestored(true);
 		setConversationId(id);
 		rememberConversation(id);
 		setError(null);
@@ -195,6 +221,7 @@ export function useTutorChat() {
 		conversations,
 		conversation,
 		messages,
+		now,
 		busy,
 		error,
 		select,

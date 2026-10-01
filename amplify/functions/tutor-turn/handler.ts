@@ -7,7 +7,7 @@ import {
 	loadHousehold,
 	localDateKey,
 } from "../tutor-core/context";
-import { dataClient, unwrap } from "../tutor-core/data";
+import { type DataClient, dataClient, unwrap } from "../tutor-core/data";
 import type { ToolContext } from "../tutor-core/tools";
 import { loadHistory, saveTurn, type TurnMessages } from "./transcript";
 
@@ -21,12 +21,18 @@ export const handler: Schema["runTutorTurn"]["functionHandler"] = async (
 	const timeZone = isValidTimeZone(event.arguments.timeZone)
 		? (event.arguments.timeZone as string)
 		: "UTC";
-	const client = await dataClient();
+	console.log("Tutor turn", { conversationId, messageId, timeZone });
+	// Set up inside the try below, so a failure there is still logged.
+	let client: DataClient | undefined;
 
-	const update = (fields: Omit<Schema["TutorMessage"]["updateType"], "id">) =>
-		client.models.TutorMessage.update({ id: messageId, ...fields }).then(
-			unwrap,
+	const update = async (
+		fields: Omit<Schema["TutorMessage"]["updateType"], "id">,
+	) => {
+		if (!client) throw new Error("Data client unavailable.");
+		return unwrap(
+			await client.models.TutorMessage.update({ id: messageId, ...fields }),
 		);
+	};
 
 	let liveText = "";
 	let stepStartText = "";
@@ -48,6 +54,7 @@ export const handler: Schema["runTutorTurn"]["functionHandler"] = async (
 	};
 
 	try {
+		client = await dataClient();
 		const [conversation, placeholder, messages] = await Promise.all([
 			client.models.Conversation.get({ id: conversationId }).then(unwrap),
 			client.models.TutorMessage.get({ id: messageId }).then(unwrap),

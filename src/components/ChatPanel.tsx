@@ -1,7 +1,11 @@
 import { Bot, Check, GraduationCap, Plus, RotateCcw, Send } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import Markdown from "react-markdown";
-import type { TutorChat, TutorMessage } from "~/hooks/useTutorChat";
+import {
+	isStalled,
+	type TutorChat,
+	type TutorMessage,
+} from "~/hooks/useTutorChat";
 import type { Child } from "~/lib/agenda";
 
 type Props = {
@@ -23,9 +27,11 @@ function Thinking() {
 
 function MessageBubble({
 	message,
+	now,
 	onRetry,
 }: {
 	message: TutorMessage;
+	now: number;
 	onRetry: () => void;
 }) {
 	if (message.role === "user") {
@@ -42,9 +48,12 @@ function MessageBubble({
 	const activity = (message.activity ?? [])
 		.filter((text): text is string => !!text)
 		.map((text, n) => ({ text, key: `${n}:${text}` }));
+	const stalled = isStalled(message, now);
+	const failed = message.status === "error" || stalled;
 	const waiting =
-		message.status === "pending" ||
-		(message.status === "streaming" && !message.text);
+		!stalled &&
+		(message.status === "pending" ||
+			(message.status === "streaming" && !message.text));
 	return (
 		<div className="flex justify-start">
 			<div className="max-w-[92%] rounded-2xl rounded-bl-none border border-slate-100 bg-slate-100 px-3 py-2 text-sm leading-relaxed text-slate-700 shadow-sm">
@@ -67,9 +76,11 @@ function MessageBubble({
 						))}
 					</ul>
 				)}
-				{message.status === "error" && (
+				{failed && (
 					<div className="mt-1 text-xs text-red-600">
-						{message.error ?? "Something went wrong."}{" "}
+						{stalled
+							? "The tutor didn't respond."
+							: (message.error ?? "Something went wrong.")}{" "}
 						<button
 							type="button"
 							onClick={onRetry}
@@ -191,7 +202,12 @@ function MessageList({ chat }: { chat: TutorChat }) {
 	return (
 		<div className="space-y-3">
 			{chat.messages.map((m) => (
-				<MessageBubble key={m.id} message={m} onRetry={() => chat.retry(m)} />
+				<MessageBubble
+					key={m.id}
+					message={m}
+					now={chat.now}
+					onRetry={() => chat.retry(m)}
+				/>
 			))}
 			{chat.error && <p className="text-xs text-red-600">{chat.error}</p>}
 			<div ref={bottomRef} />
