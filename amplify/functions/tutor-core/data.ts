@@ -14,19 +14,7 @@ export function dataClient(): Promise<DataClient> {
 		const { resourceConfig, libraryOptions } = await getAmplifyDataClientConfig(
 			process.env as Parameters<typeof getAmplifyDataClientConfig>[0],
 		);
-		// Workaround for @aws-amplify/core 6.19.x: createAmplifyContext only
-		// passes libraryOptions.Auth (the credentials provider that signs IAM
-		// requests with this Lambda's role) to Auth when the resource config has
-		// an Auth section. Without one every data call fails with "No
-		// credentials". The Cognito values are never used: there is no token
-		// provider, so the credentials provider is always asked directly.
-		Amplify.configure(
-			{
-				...resourceConfig,
-				Auth: { Cognito: { userPoolId: "unused", userPoolClientId: "unused" } },
-			},
-			libraryOptions,
-		);
+		Amplify.configure(resourceConfig, libraryOptions);
 		return generateClient<Schema>();
 	})();
 	return clientPromise;
