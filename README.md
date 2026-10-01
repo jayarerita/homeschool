@@ -42,24 +42,32 @@ Children, their label colors, birthdays and other details are set up in
 
 ## The tutor
 
-The tutor runs on Claude. By default it uses **Claude Opus 4.8 in Amazon
-Bedrock** with the backend's own IAM role - no API key and no model-access
-request needed, since Opus 4.8 is open to every Bedrock account. Deploy
+The tutor runs on Claude by default: **Claude Opus 4.8 in Amazon Bedrock**,
+called with the backend's own IAM role (no API key). Deploy
 (`npm run amplify:sandbox`) and the tutor appears in the chat panel.
 
-Claude Opus 5.5 is gated per AWS account on Bedrock. Once your account has
-access (Bedrock → Model access), deploy with
+Third-party models on Bedrock (Anthropic, xAI, ...) are enabled through AWS
+Marketplace the first time they're used. If your account can't use them yet
+(the tutor shows "not available for this account", and the Bedrock playground
+returns `AccessDeniedException` for Claude), contact AWS Support, or use one of
+the other providers below. Once Opus 5.5 works for your account, deploy with
 `TUTOR_MODEL=anthropic.claude-opus-5-5`.
 
-To use the Claude API instead:
+Other providers, chosen at deploy time:
 
 ```bash
+# The Claude API (Claude Opus 5.5), billed by Anthropic
 npx ampx sandbox secret set ANTHROPIC_API_KEY
 TUTOR_PROVIDER=anthropic npm run amplify:sandbox
+
+# A model on Bedrock's OpenAI-compatible endpoint, e.g. Google's Gemma 4 31B.
+# Handy when Claude isn't available on your account yet. Expect a noticeably
+# less capable tutor; it can't read PDF or image attachments.
+TUTOR_PROVIDER=bedrock-openai npm run amplify:sandbox
 ```
 
-Set `TUTOR_MODEL` at deploy time to use a different model (Bedrock model IDs
-start with `anthropic.`).
+On Windows PowerShell, set variables with `$env:TUTOR_PROVIDER="bedrock-openai";`
+before the command. `TUTOR_MODEL` overrides the model ID for any provider.
 
 ## Planner and notifications
 

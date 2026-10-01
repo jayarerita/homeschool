@@ -1,5 +1,5 @@
 import { defineFunction } from "@aws-amplify/backend";
-import { claudeEnvironment } from "../tutor-core/environment";
+import { modelEnvironment } from "../tutor-core/environment";
 
 export const tutorTurn = defineFunction({
 	name: "tutor-turn",
@@ -8,5 +8,5 @@ export const tutorTurn = defineFunction({
 	resourceGroupName: "data",
 	timeoutSeconds: 600,
 	memoryMB: 1024,
-	environment: claudeEnvironment,
+	environment: modelEnvironment,
 });

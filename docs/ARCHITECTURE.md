@@ -53,7 +53,12 @@ modules (client, context, tools) rather than a second agent.
   Bedrock account; Lambda IAM role, `bedrock-mantle:CreateInference`).
   `TUTOR_MODEL` overrides it (e.g. `anthropic.claude-opus-5-5`, which Bedrock
   gates per account). Alternatively the Claude API (Opus 5.5) with an
-  `ANTHROPIC_API_KEY` secret and `TUTOR_PROVIDER=anthropic`. Refusal
+  `ANTHROPIC_API_KEY` secret and `TUTOR_PROVIDER=anthropic`, or any model on
+  Bedrock's OpenAI-compatible endpoint (`TUTOR_PROVIDER=bedrock-openai`,
+  default `google.gemma-4-31b`; `tutor-core/openai-compatible.ts` converts
+  the stored Claude-format conversation to Chat Completions and back, signing
+  with SigV4). The agent loop only sees the `ModelClient` interface
+  (`tutor-core/model.ts`). Refusal
   fallbacks: server-side `fallbacks: "default"` on the Claude API; the SDK's
   client-side middleware to Opus 4.8 on Bedrock when the main model differs.
 - **History**: each completed turn's exact API messages (user message, the

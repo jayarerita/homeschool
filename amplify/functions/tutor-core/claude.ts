@@ -3,35 +3,44 @@ import Anthropic, {
 	BetaFallbackState,
 	betaRefusalFallbackMiddleware,
 } from "@anthropic-ai/sdk";
-import type { BetaMessageStream } from "@anthropic-ai/sdk/lib/BetaMessageStream";
-
-// Provider and model are set at deploy time; see ./environment.ts.
-const provider =
-	process.env.TUTOR_PROVIDER === "anthropic" ? "anthropic" : "bedrock";
-
-// On Bedrock, Claude Opus 4.8 is open to every account; Opus 5.5 is gated per
-// account (set TUTOR_MODEL=anthropic.claude-opus-5-5 once it's granted).
-export const MODEL =
-	process.env.TUTOR_MODEL ??
-	(provider === "bedrock" ? "anthropic.claude-opus-4-8" : "claude-opus-5-5");
+import { echoableContent } from "./echo";
+import type {
+	MessageParam,
+	ModelClient,
+	ModelStep,
+	StepRequest,
+} from "./model";
 
 // Used only if the main model declines a request on policy grounds.
 const BEDROCK_FALLBACK_MODEL = "anthropic.claude-opus-4-8";
 
-type StreamParams = Omit<
-	Anthropic.Beta.MessageCreateParamsStreaming,
-	"stream" | "fallbacks" | "betas"
->;
+// Marks the last block of the last message as a cache breakpoint, so each
+// request caches the whole conversation so far. Only the request copy gets
+// the marker; the turn's stored messages stay unchanged.
+export function withCacheBreakpoint(messages: MessageParam[]): MessageParam[] {
+	const last = messages.at(-1);
+	if (!last) return messages;
+	const blocks =
+		typeof last.content === "string"
+			? [{ type: "text" as const, text: last.content }]
+			: last.content;
+	const marked = blocks.map((b, i) =>
+		i === blocks.length - 1
+			? { ...b, cache_control: { type: "ephemeral" as const } }
+			: b,
+	) as MessageParam["content"];
+	return [...messages.slice(0, -1), { ...last, content: marked }];
+}
 
-export type TurnStream = BetaMessageStream<unknown>;
-
-export class Claude {
+export class ClaudeModel implements ModelClient {
 	#anthropic?: Anthropic;
 	#bedrock?: AnthropicBedrockMantle;
+	#model: string;
 	// Pins the rest of this turn to the fallback model once it has taken over.
 	#fallbackState = new BetaFallbackState();
 
-	constructor() {
+	constructor(provider: "anthropic" | "bedrock", model: string) {
+		this.#model = model;
 		if (provider === "anthropic") {
 			// Reads ANTHROPIC_API_KEY from the environment.
 			this.#anthropic = new Anthropic();
@@ -41,7 +50,7 @@ export class Claude {
 				awsRegion: process.env.AWS_REGION,
 				// No fallback when the fallback model is the main model.
 				middleware:
-					MODEL === BEDROCK_FALLBACK_MODEL
+					model === BEDROCK_FALLBACK_MODEL
 						? []
 						: [
 								betaRefusalFallbackMiddleware([
@@ -52,7 +61,24 @@ export class Claude {
 		}
 	}
 
-	stream(params: StreamParams): TurnStream {
+	#stream(request: StepRequest) {
+		const params = {
+			model: this.#model,
+			max_tokens: 64000,
+			system: [
+				{
+					type: "text" as const,
+					text: request.system,
+					cache_control: { type: "ephemeral" as const },
+				},
+			],
+			// eager_input_streaming lets tool inputs stream as they're generated;
+			// the API then skips input validation, so tools validate with zod.
+			tools: request.tools.map((t) => ({ ...t, eager_input_streaming: true })),
+			thinking: { type: "adaptive" as const },
+			output_config: { effort: "medium" as const },
+			messages: withCacheBreakpoint(request.messages),
+		};
 		if (this.#anthropic) {
 			// The Claude API handles refusal fallbacks server-side.
 			return this.#anthropic.beta.messages.stream({
@@ -66,17 +92,25 @@ export class Claude {
 			fallbackState: this.#fallbackState,
 		});
 	}
-}
 
-// A readable message for a failed Claude request, using the API's own error
-// message when there is one (e.g. "model is not available for this account").
-export function describeClaudeError(err: unknown): string {
-	if (err instanceof Anthropic.APIError) {
-		const body = err.error as { error?: { message?: string } } | undefined;
-		const detail = body?.error?.message ?? err.message;
-		return `The tutor service returned an error (${err.status ?? "network"}): ${detail}`;
+	async step(request: StepRequest): Promise<ModelStep> {
+		for (let attempt = 0; ; attempt++) {
+			const stream = this.#stream(request);
+			if (request.onText) stream.on("text", request.onText);
+			try {
+				const message = await stream.finalMessage();
+				return {
+					stopReason: message.stop_reason ?? "end_turn",
+					// After a refusal fallback, drop blocks only the declining model
+					// understands; otherwise content is echoed back unchanged.
+					content: echoableContent(message.content),
+				} as ModelStep;
+			} catch (err) {
+				// With eager input streaming, an unparseable tool input rejects the
+				// stream; re-issue the step. API errors are real failures.
+				if (err instanceof Anthropic.APIError || attempt >= 2) throw err;
+				request.onRetry?.();
+			}
+		}
 	}
-	return err instanceof Error ? err.message : String(err);
 }
-
-export { Anthropic };

@@ -1,9 +1,9 @@
+import type Anthropic from "@anthropic-ai/sdk";
 import { GetObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { z } from "zod";
 import { planInsert } from "../../../src/lib/planning";
 import { COLOR_TOKENS } from "../../data/colors";
 import type { Schema } from "../../data/resource";
-import type { Anthropic } from "./claude";
 import { addDays, describeDate, describeItem, type Household } from "./context";
 import { type DataClient, unwrap } from "./data";
 
@@ -531,9 +531,9 @@ const TOOLS = [
 	}),
 ];
 
-// Tool definitions sent to the model. eager_input_streaming lets inputs stream
-// as they're generated; the API then skips input validation, so every input
-// is validated with zod before running (see runTool).
+// Tool definitions sent to the model. Inputs aren't guaranteed to match the
+// schema (Claude streams them unvalidated; other models may simply be wrong),
+// so every input is validated with zod before running (see runTool).
 export const TOOL_DEFINITIONS: Anthropic.Beta.BetaTool[] = TOOLS.map((t) => {
 	const { $schema: _, ...schema } = z.toJSONSchema(t.input, {
 		io: "input",
@@ -544,12 +544,11 @@ export const TOOL_DEFINITIONS: Anthropic.Beta.BetaTool[] = TOOLS.map((t) => {
 		name: t.name,
 		description: t.description,
 		input_schema: schema,
-		eager_input_streaming: true,
 	};
 });
 
 export async function runTool(
-	block: Anthropic.Beta.BetaToolUseBlock,
+	block: Anthropic.Beta.BetaToolUseBlockParam,
 	ctx: ToolContext,
 ): Promise<Anthropic.Beta.BetaToolResultBlockParam> {
 	const definition = TOOLS.find((t) => t.name === block.name);

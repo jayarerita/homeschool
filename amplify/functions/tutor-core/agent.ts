@@ -1,30 +1,12 @@
-import { Anthropic, Claude, MODEL } from "./claude";
-import { echoableContent } from "./echo";
+import type Anthropic from "@anthropic-ai/sdk";
+import { createModelClient, type MessageParam } from "./model";
 import { SYSTEM_PROMPT } from "./prompt";
 import { runTool, TOOL_DEFINITIONS, type ToolContext } from "./tools";
 
-export type MessageParam = Anthropic.Beta.BetaMessageParam;
+export type { MessageParam };
 
 // Stop a runaway tool loop well before the Lambda timeout.
 const MAX_ITERATIONS = 25;
-
-// Marks the last block of the last message as a cache breakpoint, so each
-// request caches the whole conversation so far. Only the request copy gets
-// the marker; the turn's stored messages stay unchanged.
-export function withCacheBreakpoint(messages: MessageParam[]): MessageParam[] {
-	const last = messages.at(-1);
-	if (!last) return messages;
-	const blocks =
-		typeof last.content === "string"
-			? [{ type: "text" as const, text: last.content }]
-			: last.content;
-	const marked = blocks.map((b, i) =>
-		i === blocks.length - 1
-			? { ...b, cache_control: { type: "ephemeral" as const } }
-			: b,
-	) as MessageParam["content"];
-	return [...messages.slice(0, -1), { ...last, content: marked }];
-}
 
 export type AgentOutcome = "finished" | "refused";
 
@@ -50,52 +32,28 @@ export async function runAgent({
 	onStepRetry?: () => void;
 	onToolsDone?: () => void;
 }): Promise<AgentOutcome> {
-	const claude = new Claude();
-	let jsonRetries = 0;
+	const model = await createModelClient();
 
 	for (let i = 0; i < MAX_ITERATIONS; i++) {
 		onStepStart?.();
-		const stream = claude.stream({
-			model: MODEL,
-			max_tokens: 64000,
-			system: [
-				{
-					type: "text",
-					text: SYSTEM_PROMPT,
-					cache_control: { type: "ephemeral" },
-				},
-			],
+		const step = await model.step({
+			system: SYSTEM_PROMPT,
 			tools: TOOL_DEFINITIONS,
-			thinking: { type: "adaptive" },
-			output_config: { effort: "medium" },
-			messages: withCacheBreakpoint([...history, ...turn]),
+			messages: [...history, ...turn],
+			onText,
+			onRetry: onStepRetry,
 		});
-		if (onText) stream.on("text", onText);
 
-		let message: Anthropic.Beta.BetaMessage;
-		try {
-			message = await stream.finalMessage();
-			jsonRetries = 0;
-		} catch (err) {
-			// With eager input streaming, an unparseable tool input rejects the
-			// stream; re-issue the step. API errors are real failures.
-			if (err instanceof Anthropic.APIError || jsonRetries++ >= 2) throw err;
-			onStepRetry?.();
-			i--;
-			continue;
-		}
+		if (step.stopReason === "refusal") return "refused";
+		turn.push({ role: "assistant", content: step.content });
 
-		if (message.stop_reason === "refusal") return "refused";
-		const content = echoableContent(message.content);
-		turn.push({ role: "assistant", content });
+		if (step.stopReason === "pause_turn") continue;
 
-		if (message.stop_reason === "pause_turn") continue;
-
-		const toolUses = content.filter(
-			(b): b is Anthropic.Beta.BetaToolUseBlock => b.type === "tool_use",
+		const toolUses = step.content.filter(
+			(b): b is Anthropic.Beta.BetaToolUseBlockParam => b.type === "tool_use",
 		);
 		if (toolUses.length === 0) return "finished";
-		if (message.stop_reason === "max_tokens") {
+		if (step.stopReason === "max_tokens") {
 			throw new Error("The reply was cut off (too long).");
 		}
 
@@ -120,5 +78,3 @@ export function replyText(turn: MessageParam[]): string {
 		.join("\n\n")
 		.trim();
 }
-
-export { Anthropic };

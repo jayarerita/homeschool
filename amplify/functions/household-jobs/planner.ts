@@ -2,13 +2,13 @@ import { pendingRoutines, planInsert } from "../../../src/lib/planning";
 import { DRAFT_FAILED_PREFIX } from "../../data/day-plan";
 import type { Schema } from "../../data/resource";
 import { replyText, runAgent } from "../tutor-core/agent";
-import { describeClaudeError } from "../tutor-core/claude";
 import {
 	buildContext,
 	describeDate,
 	loadHousehold,
 } from "../tutor-core/context";
 import { type DataClient, unwrap } from "../tutor-core/data";
+import { describeModelError } from "../tutor-core/model";
 import type { Settings } from "./schedule";
 
 type AgendaItem = Schema["AgendaItem"]["type"];
@@ -114,7 +114,7 @@ export async function draftDay(
 		// retry; the scheduled run logs it and moves on.
 		await client.models.DayPlan.update({
 			date,
-			summary: `${DRAFT_FAILED_PREFIX}${describeClaudeError(e)}`,
+			summary: `${DRAFT_FAILED_PREFIX}${describeModelError(e)}`,
 		});
 		throw e;
 	}

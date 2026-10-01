@@ -1,6 +1,5 @@
 import type { Schema } from "../../data/resource";
 import { runAgent } from "../tutor-core/agent";
-import { describeClaudeError } from "../tutor-core/claude";
 import {
 	audienceFor,
 	buildContext,
@@ -9,6 +8,7 @@ import {
 	localDateKey,
 } from "../tutor-core/context";
 import { type DataClient, dataClient, unwrap } from "../tutor-core/data";
+import { describeModelError } from "../tutor-core/model";
 import type { ToolContext } from "../tutor-core/tools";
 import { loadHistory, saveTurn, type TurnMessages } from "./transcript";
 
@@ -151,7 +151,7 @@ export const handler: Schema["runTutorTurn"]["functionHandler"] = async (
 	} catch (err) {
 		console.error("Tutor turn failed", err);
 		await stopFlushing();
-		const message = describeClaudeError(err);
+		const message = describeModelError(err);
 		await update({
 			text: liveText.trim(),
 			status: "error",
