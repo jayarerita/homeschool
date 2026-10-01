@@ -16,7 +16,7 @@
 	"author": "jake",
 	"license": "MIT",
 	"scripts": {
-		"dev": "vite dev",
+		"dev": "vite dev --port=3041",
 		"build": "vite build",
 		"start": "vite start",
 		"amplify:sandbox": "npx ampx sandbox",
