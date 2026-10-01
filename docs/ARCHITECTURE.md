@@ -48,12 +48,14 @@ modules (client, context, tools) rather than a second agent.
   which invokes the Lambda asynchronously. The Lambda streams Claude's reply
   into the assistant message (throttled updates, `status: streaming` → `done`
   or `error`); the UI watches with `observeQuery`.
-- **Model**: Claude Opus 5.5 with adaptive thinking at `medium` effort, via
-  Claude in Amazon Bedrock (`anthropic.claude-opus-5-5`, Lambda IAM role,
-  `bedrock-mantle:CreateInference`) by default, or the Claude API with an
-  `ANTHROPIC_API_KEY` secret (`TUTOR_PROVIDER=anthropic` at deploy time).
-  Refusal fallbacks are on: server-side `fallbacks: "default"` on the Claude
-  API, the SDK's client-side middleware (to Opus 4.8) on Bedrock.
+- **Model**: adaptive thinking at `medium` effort. By default Claude Opus 4.8
+  via Claude in Amazon Bedrock (`anthropic.claude-opus-4-8`, open to every
+  Bedrock account; Lambda IAM role, `bedrock-mantle:CreateInference`).
+  `TUTOR_MODEL` overrides it (e.g. `anthropic.claude-opus-5-5`, which Bedrock
+  gates per account). Alternatively the Claude API (Opus 5.5) with an
+  `ANTHROPIC_API_KEY` secret and `TUTOR_PROVIDER=anthropic`. Refusal
+  fallbacks: server-side `fallbacks: "default"` on the Claude API; the SDK's
+  client-side middleware to Opus 4.8 on Bedrock when the main model differs.
 - **History**: each completed turn's exact API messages (user message, the
   per-turn context message, assistant content including thinking blocks, tool
   results) are stored in S3 at `tutor/<conversationId>/<messageId>.json` and
@@ -220,7 +222,7 @@ depend on the input channel.
 
 ## Default decisions (revisit as needed)
 
-- Bedrock by default, Anthropic API optional.
+- Bedrock by default (Claude Opus 4.8), Anthropic API optional.
 - Kids use "kid mode" on a parent's device until phase 6.
 - One household per deployment.
 - The planner creates **draft** days that a parent publishes.

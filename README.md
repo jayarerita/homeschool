@@ -42,13 +42,14 @@ Children, their label colors, birthdays and other details are set up in
 
 ## The tutor
 
-The tutor runs on Claude. By default it uses **Claude in Amazon Bedrock** with
-the backend's own IAM role - no API key needed:
+The tutor runs on Claude. By default it uses **Claude Opus 4.8 in Amazon
+Bedrock** with the backend's own IAM role - no API key and no model-access
+request needed, since Opus 4.8 is open to every Bedrock account. Deploy
+(`npm run amplify:sandbox`) and the tutor appears in the chat panel.
 
-1. In the AWS console, open **Amazon Bedrock → Model access** in the region you
-   deploy to and make sure **Claude Opus 5.5** is enabled (Claude Opus 4.8,
-   used as a fallback, is open to all accounts).
-2. Deploy (`npm run amplify:sandbox`). The tutor appears in the chat panel.
+Claude Opus 5.5 is gated per AWS account on Bedrock. Once your account has
+access (Bedrock → Model access), deploy with
+`TUTOR_MODEL=anthropic.claude-opus-5-5`.
 
 To use the Claude API instead:
 

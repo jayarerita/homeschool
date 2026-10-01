@@ -9,9 +9,11 @@ import type { BetaMessageStream } from "@anthropic-ai/sdk/lib/BetaMessageStream"
 const provider =
 	process.env.TUTOR_PROVIDER === "anthropic" ? "anthropic" : "bedrock";
 
+// On Bedrock, Claude Opus 4.8 is open to every account; Opus 5.5 is gated per
+// account (set TUTOR_MODEL=anthropic.claude-opus-5-5 once it's granted).
 export const MODEL =
 	process.env.TUTOR_MODEL ??
-	(provider === "bedrock" ? "anthropic.claude-opus-5-5" : "claude-opus-5-5");
+	(provider === "bedrock" ? "anthropic.claude-opus-4-8" : "claude-opus-5-5");
 
 // Used only if the main model declines a request on policy grounds.
 const BEDROCK_FALLBACK_MODEL = "anthropic.claude-opus-4-8";
