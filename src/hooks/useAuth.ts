@@ -84,6 +84,7 @@ export function useAuth() {
 		...authState,
 		isParent: authState.groups.includes(GROUPS.parent),
 		isAdmin: authState.groups.includes(GROUPS.admin),
+		isDevice: authState.groups.includes(GROUPS.device),
 		logout,
 		checkAuthState,
 	};

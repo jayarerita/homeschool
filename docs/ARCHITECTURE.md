@@ -132,7 +132,8 @@ Cognito groups:
 - `ADMIN` — an add-on to `PARENT`: can invite, re-role and remove members.
 - `PARENT` — full CRUD on everything.
 - `CHILD` — read own agenda items, chat in kid mode.
-- `DEVICE` — voice device; tutor turns and read access to the current day.
+- `DEVICE` — speaker device; read access to the day, its own tutor
+  conversations (owner rules, also checked in `tutor-turn`), and `speak`.
 
 Agent Lambdas get access through `allow.resource(fn)`.
 
@@ -184,14 +185,20 @@ delivered: skipped if already read in-app or the type is muted in their
 Owner-authorized records store `owner` as `sub::username` but read back as the
 username, so recipients are keyed by username throughout.
 
-## Voice device (later)
+## Speaker device (`src/routes/_authed/device.tsx`)
 
-Raspberry Pi-class device with mic and speaker: local wake word → speech-to-text
-(Amazon Transcribe streaming or Whisper) → `tutorTurn` in voice mode,
-authenticated as a `DEVICE` Cognito user → text-to-speech (Amazon Polly or
-similar). It can join the active lesson session so it knows the current
-exercise. No backend redesign is needed because the agent core does not
-depend on the input channel.
+A `DEVICE` member signs in on any screen (tablet, old phone, Raspberry Pi
+kiosk) and is locked to `/device`: a clock, now/next from today's agenda, and
+tap to talk. The browser's speech recognition turns speech into text, which is
+posted to a `device` mode conversation (one per day) and answered by the
+normal `tutor-turn` Lambda with a speaker prompt (short, spoken, no markdown).
+Replies are spoken through the `speak` query: `household-jobs` strips
+markdown and calls Amazon Polly (neural voice), returning base64 MP3; the
+browser voice is the fallback. Lessons and read-aloud use the same `speak`.
+
+Later: a wake word and server-side speech-to-text (Amazon Transcribe or
+Whisper) for browsers without speech recognition, like Chromium on a Pi, and
+letting the speaker join the active lesson.
 
 ## What is recycled from the old app
 
@@ -231,13 +238,15 @@ depend on the input channel.
    full-screen lesson view with browser read-aloud and speech input, the tutor
    wrapping up lessons with an observation, and `create_worksheet` (sanitized,
    CSP-locked HTML in `uploads/worksheets/`, printed from a sandboxed iframe).
-7. **Voice device** — device client, `DEVICE` group, voice pipeline.
+7. **Speaker device** — `DEVICE` accounts locked to a speaker screen
+   (clock, now/next, tap to talk), owner-scoped device conversations, a
+   spoken-reply prompt, and Amazon Polly voices for the speaker and lessons.
 8. **Open-source polish** — deploy guide (Amplify deploy, secrets, Bedrock
    model access), seed data, contributing guide.
 
 ## Default decisions (revisit as needed)
 
 - Bedrock by default (Claude Sonnet 5), Anthropic API optional.
-- Kids use "kid mode" on a parent's device until phase 6.
+- Kids use "kid mode" on a parent's device; no kid logins yet.
 - One household per deployment.
 - The planner creates **draft** days that a parent publishes.

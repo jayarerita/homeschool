@@ -6,7 +6,8 @@ and deployable to **AWS Amplify Gen 2**. One deployment serves one household.
 > Status: early. Authentication, household roles and member invites, child
 > profiles, the daily agenda with editing, routines, learning units, a
 > resource library, file uploads, the AI tutor, a nightly planner and
-> notifications are in place. Kid accounts and the voice device are coming — see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
+> notifications, kid mode with spoken lessons, and a speaker device are in place.
+> Kid accounts are coming — see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
 > for the design and roadmap.
 
 ## Getting started
@@ -29,7 +30,7 @@ Household members are grouped in Cognito:
 | `ADMIN` | Parent who can also invite and manage members |
 | `PARENT` | Full access to plans and children |
 | `CHILD` | Kid experience (coming in a later phase) |
-| `DEVICE` | Voice device (coming in a later phase) |
+| `DEVICE` | Speaker device: only the speaker screen and its own questions |
 
 **The first person to sign up and confirm their email becomes an `ADMIN`
 parent.** After that, public sign-up is closed. Admins invite others from
@@ -74,6 +75,26 @@ at deploy time.
   matching, coloring) and it attaches one to the activity; "Open worksheet"
   shows it ready to print. Worksheets are shown in a locked-down frame with no
   scripts or outside content.
+- **Voices**: replies are spoken with Amazon Polly's neural voice (falling back
+  to the browser's voice if that fails).
+
+## Speaker device
+
+Turn a spare tablet, old phone, or a Raspberry Pi with a touchscreen into the
+household's speaker:
+
+1. In Settings → Members, invite a member with the **Speaker device** role.
+   Any email you can receive works; a plus address such as
+   `you+kitchen@example.com` keeps it in your own inbox.
+2. On the device, open the app, sign in with that account and set a password.
+3. It shows a big clock, what's on now and next, and a **Tap to talk** button.
+   Anyone in the room can ask a question; the tutor answers in a sentence or
+   two, out loud.
+
+The device account can't reach anything else in the app, and only sees its own
+conversations (parents can read them in the tutor panel). Each day starts a
+fresh conversation. Talking uses the browser's speech recognition, so use
+Chrome or an Android device; elsewhere the screen offers typing instead.
 
 ## Planner and notifications
 

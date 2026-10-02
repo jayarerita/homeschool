@@ -27,13 +27,23 @@ function KidModeLock() {
 	return null;
 }
 
+// A speaker device account only ever shows the speaker screen.
+function DeviceLock() {
+	const navigate = useNavigate();
+	const pathname = useRouterState({ select: (s) => s.location.pathname });
+	useEffect(() => {
+		if (pathname !== "/device") navigate({ to: "/device", replace: true });
+	}, [pathname, navigate]);
+	return null;
+}
+
 export const Route = createFileRoute("/_authed")({
 	component: AuthGuard,
 });
 
 function AuthGuard() {
 	const auth = useAuth();
-	const { isAuthenticated, isLoading, isParent, user, logout } = auth;
+	const { isAuthenticated, isLoading, isParent, isDevice, user, logout } = auth;
 
 	if (isLoading) {
 		return (
@@ -47,9 +57,10 @@ function AuthGuard() {
 		return <Login />;
 	}
 
-	// Kids use the app through kid mode on a parent's device; CHILD and DEVICE
-	// accounts get their own experiences later. See docs/ARCHITECTURE.md.
-	if (!isParent) {
+	// Kids use the app through kid mode on a parent's device, and speaker
+	// devices get the speaker screen. CHILD accounts have no experience of
+	// their own yet. See docs/ARCHITECTURE.md.
+	if (!isParent && !isDevice) {
 		return (
 			<div className="flex min-h-screen flex-col items-center justify-center gap-3 p-6 text-center">
 				<p className="text-lg font-semibold text-slate-700">
@@ -76,7 +87,7 @@ function AuthGuard() {
 
 	return (
 		<AuthContext.Provider value={auth}>
-			<KidModeLock />
+			{isParent ? <KidModeLock /> : <DeviceLock />}
 			<Outlet />
 		</AuthContext.Provider>
 	);

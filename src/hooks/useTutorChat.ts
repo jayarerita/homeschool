@@ -51,7 +51,8 @@ export function useTutorChat() {
 	const [restored, setRestored] = useState(false);
 	const live = useConversationMessages(conversationId);
 
-	// Reopen the last conversation, or the most recent one.
+	// Reopen the last conversation, or the most recent parent one (not a
+	// lesson or the speaker's, which are often more recent).
 	useEffect(() => {
 		if (restored || conversations.length === 0) return;
 		setRestored(true);
@@ -59,7 +60,7 @@ export function useTutorChat() {
 		const recalled = recalledConversation();
 		setConversationId(
 			conversations.find((c) => c.id === recalled)?.id ??
-				conversations[0]?.id ??
+				conversations.find((c) => (c.mode ?? "parent") === "parent")?.id ??
 				null,
 		);
 	}, [conversations, conversationId, restored]);

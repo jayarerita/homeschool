@@ -17,10 +17,11 @@ import {
 	localClock,
 	type Settings,
 } from "./schedule";
+import { speak } from "./speech";
 
 // This function runs hourly on a schedule and also serves these AppSync
-// operations: pushPublicKey, sendTestNotification, draftDay, and the admin's
-// aiSettings / setAiSettings.
+// operations: pushPublicKey, sendTestNotification, draftDay, speak, and the
+// admin's aiSettings / setAiSettings.
 type AppSyncEvent = {
 	fieldName?: string;
 	info?: { fieldName?: string };
@@ -102,6 +103,9 @@ export const handler = async (event: AppSyncEvent) => {
 				event.arguments ?? {},
 				event.identity?.username ?? "unknown",
 			);
+
+		case "speak":
+			return speak(String(event.arguments?.text ?? ""));
 
 		case "pushPublicKey":
 			return (await getVapidKeys()).publicKey;

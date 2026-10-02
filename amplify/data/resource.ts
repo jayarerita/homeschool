@@ -159,12 +159,16 @@ const schema = a
 		Conversation: a
 			.model({
 				title: a.string(),
-				mode: a.enum(["parent", "lesson"]),
+				// "device": the household speaker (a DEVICE account) talking with
+				// whoever is in the room.
+				mode: a.enum(["parent", "lesson", "device"]),
 				childId: a.id(),
 				agendaItemId: a.id(),
 				lastMessageAt: a.datetime(),
 			})
-			.authorization((allow) => [allow.groups([GROUPS.parent])]),
+			// Parents see every conversation; a device (or any other account)
+			// sees only the ones it created.
+			.authorization((allow) => [allow.groups([GROUPS.parent]), allow.owner()]),
 
 		// What the chat UI shows. The verbatim API transcript of each turn lives in
 		// S3 (tutor/<conversationId>/<messageId>.json) because it can exceed
@@ -186,7 +190,7 @@ const schema = a
 					.sortKeys(["sentAt"])
 					.queryField("tutorMessagesByConversation"),
 			])
-			.authorization((allow) => [allow.groups([GROUPS.parent])]),
+			.authorization((allow) => [allow.groups([GROUPS.parent]), allow.owner()]),
 
 		// Tutor-maintained notes about each child: strengths, what they're working
 		// on, what engages them. One record per child.
@@ -225,7 +229,7 @@ const schema = a
 				messageId: a.id().required(),
 				timeZone: a.string(),
 			})
-			.authorization((allow) => [allow.group(GROUPS.parent)])
+			.authorization((allow) => [allow.groups([GROUPS.parent, GROUPS.device])])
 			.handler(a.handler.function(tutorTurn).async()),
 
 		// ── Planner and notifications ──
@@ -332,6 +336,17 @@ const schema = a
 			})
 			.returns(a.ref("AiSettings"))
 			.authorization((allow) => [allow.group(GROUPS.admin)])
+			.handler(a.handler.function(householdJobs)),
+
+		// Speech audio for a reply (Amazon Polly), as base64 MP3. Used by the
+		// speaker device and lesson read-aloud.
+		speak: a
+			.query()
+			.arguments({ text: a.string().required() })
+			.returns(a.string())
+			.authorization((allow) => [
+				allow.groups([GROUPS.parent, GROUPS.child, GROUPS.device]),
+			])
 			.handler(a.handler.function(householdJobs)),
 
 		pushPublicKey: a

@@ -48,6 +48,14 @@ for (const lambda of [tutorLambda, jobsLambda]) {
 	);
 }
 
+// Spoken replies for the speaker device and lessons (the speak query).
+jobsLambda.addToRolePolicy(
+	new PolicyStatement({
+		actions: ["polly:SynthesizeSpeech"],
+		resources: ["*"],
+	}),
+);
+
 // Optional email notifications through Amazon SES (off until a sender address
 // is set in household settings).
 jobsLambda.addToRolePolicy(

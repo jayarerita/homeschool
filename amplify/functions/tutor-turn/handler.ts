@@ -1,4 +1,5 @@
 import type { Schema } from "../../data/resource";
+import { canUseConversation } from "../tutor-core/access";
 import { runAgent } from "../tutor-core/agent";
 import {
 	audienceFor,
@@ -65,6 +66,18 @@ export const handler: Schema["runTutorTurn"]["functionHandler"] = async (
 			).then(unwrap),
 		]);
 		if (!conversation) throw new Error("Conversation not found.");
+		const caller = event.identity as
+			| { username?: string; groups?: string[] | null }
+			| undefined;
+		if (!canUseConversation(caller, conversation)) {
+			// Don't write into someone else's conversation, even an error.
+			console.warn("Refused tutor turn", {
+				conversationId,
+				caller: caller?.username,
+			});
+			client = undefined;
+			return;
+		}
 		if (
 			!placeholder ||
 			placeholder.conversationId !== conversationId ||

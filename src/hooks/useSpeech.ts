@@ -1,50 +1,36 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { speakText, stopSpeaking } from "~/lib/voice";
 
-// Read aloud and talk back with the browser's built-in speech: free, no
-// backend. Speech recognition is best in Chrome; where a browser lacks it the
-// microphone is simply hidden.
+// Read aloud (Amazon Polly via the backend, falling back to the browser
+// voice) and talk back (the browser's speech recognition: best in Chrome and
+// on Android; where a browser lacks it the microphone is hidden).
 
 const READ_ALOUD_KEY = "lesson-read-aloud";
 
 export function useReadAloud() {
-	const supported =
-		typeof window !== "undefined" && "speechSynthesis" in window;
+	// Polly does the speaking (see ~/lib/voice); the browser voice is only a
+	// fallback, so read-aloud is always offered.
+	const supported = true;
 	const [enabled, setEnabledState] = useState(true);
 
 	useEffect(() => {
 		try {
 			setEnabledState(localStorage.getItem(READ_ALOUD_KEY) !== "off");
 		} catch {}
-		return () => {
-			if (supported) window.speechSynthesis.cancel();
-		};
-	}, [supported]);
+		return () => stopSpeaking();
+	}, []);
 
-	const setEnabled = useCallback(
-		(on: boolean) => {
-			setEnabledState(on);
-			try {
-				localStorage.setItem(READ_ALOUD_KEY, on ? "on" : "off");
-			} catch {}
-			if (!on && supported) window.speechSynthesis.cancel();
-		},
-		[supported],
-	);
+	const setEnabled = useCallback((on: boolean) => {
+		setEnabledState(on);
+		try {
+			localStorage.setItem(READ_ALOUD_KEY, on ? "on" : "off");
+		} catch {}
+		if (!on) stopSpeaking();
+	}, []);
 
-	const speak = useCallback(
-		(text: string) => {
-			if (!supported || !text.trim()) return;
-			window.speechSynthesis.cancel();
-			const utterance = new SpeechSynthesisUtterance(
-				// Markdown symbols read badly aloud.
-				text.replace(/[*_#`>]/g, ""),
-			);
-			utterance.rate = 0.95;
-			utterance.pitch = 1.05;
-			window.speechSynthesis.speak(utterance);
-		},
-		[supported],
-	);
+	const speak = useCallback((text: string) => {
+		if (text.trim()) void speakText(text);
+	}, []);
 
 	return { supported, enabled, setEnabled, speak };
 }

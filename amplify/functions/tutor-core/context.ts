@@ -93,12 +93,14 @@ export type Audience =
 			childId: string | null | undefined;
 			agendaItemId: string | null | undefined;
 	  }
-	| { kind: "planner" };
+	| { kind: "planner" }
+	| { kind: "device" };
 
 export function audienceFor(
 	conversation: Conversation,
 	authorName: string,
 ): Audience {
+	if (conversation.mode === "device") return { kind: "device" };
 	return conversation.mode === "lesson"
 		? {
 				kind: "lesson",
@@ -180,6 +182,10 @@ export async function buildContext({
 		}
 	} else if (audience.kind === "parent") {
 		lines.push(`You're talking with ${audience.name}, a parent.`);
+	} else if (audience.kind === "device") {
+		lines.push(
+			"You're speaking through the household's speaker device, in a shared room. Whoever is talking may be a parent or a child; tell from what they say, and ask if it matters.",
+		);
 	} else {
 		lines.push(
 			"No one is chatting: you are the household's planner, running on a schedule. Your final reply becomes a short notification to the parents.",

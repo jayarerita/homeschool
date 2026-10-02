@@ -21,7 +21,7 @@ type Member = Schema["Member"]["type"];
 const ROLE_LABELS: Record<BaseRole, string> = {
 	PARENT: "Parent",
 	CHILD: "Kid",
-	DEVICE: "Device",
+	DEVICE: "Speaker device",
 };
 
 const STATUS_LABELS: Record<string, string> = {
