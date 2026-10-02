@@ -6,6 +6,7 @@ import {
 } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { Login } from "~/components/Login";
+import Landing from "~/components/landing/Landing";
 import { AuthContext, useAuth } from "~/hooks/useAuth";
 import { allowedInKidMode, getKidMode } from "~/lib/kid-mode";
 
@@ -43,6 +44,7 @@ export const Route = createFileRoute("/_authed")({
 
 function AuthGuard() {
 	const auth = useAuth();
+	const pathname = useRouterState({ select: (s) => s.location.pathname });
 	const { isAuthenticated, isLoading, isParent, isDevice, user, logout } = auth;
 
 	if (isLoading) {
@@ -54,7 +56,9 @@ function AuthGuard() {
 	}
 
 	if (!isAuthenticated) {
-		return <Login />;
+		// Visitors to the home page see what the project is; any other page
+		// asks them to sign in.
+		return pathname === "/" ? <Landing /> : <Login />;
 	}
 
 	// Kids use the app through kid mode on a parent's device, and speaker

@@ -40,3 +40,149 @@
 		@apply text-indigo-600 underline;
 	}
 }
+
+/* Landing page motion (src/components/landing) */
+@keyframes lp-rise {
+	from {
+		opacity: 0;
+		transform: translateY(12px);
+	}
+	to {
+		opacity: 1;
+		transform: none;
+	}
+}
+@keyframes lp-pop {
+	0% {
+		opacity: 0;
+		transform: scale(0.6);
+	}
+	70% {
+		transform: scale(1.08);
+	}
+	100% {
+		opacity: 1;
+		transform: scale(1);
+	}
+}
+@keyframes lp-slide {
+	from {
+		opacity: 0;
+		transform: translateX(40px) scale(0.96);
+	}
+	to {
+		opacity: 1;
+		transform: none;
+	}
+}
+@keyframes lp-bar {
+	0%,
+	100% {
+		height: 4px;
+	}
+	50% {
+		height: 20px;
+	}
+}
+@keyframes lp-ring {
+	from {
+		opacity: 0.6;
+		transform: scale(1);
+	}
+	to {
+		opacity: 0;
+		transform: scale(1.9);
+	}
+}
+@keyframes lp-draw {
+	from {
+		stroke-dashoffset: 1;
+	}
+	to {
+		stroke-dashoffset: 0;
+	}
+}
+@keyframes lp-float {
+	0%,
+	100% {
+		transform: translateY(0);
+	}
+	50% {
+		transform: translateY(-10px);
+	}
+}
+@keyframes lp-blob {
+	0%,
+	100% {
+		transform: translate(0, 0) scale(1);
+	}
+	33% {
+		transform: translate(40px, -30px) scale(1.1);
+	}
+	66% {
+		transform: translate(-30px, 20px) scale(0.95);
+	}
+}
+@keyframes lp-caret {
+	50% {
+		opacity: 0;
+	}
+}
+
+.lp-rise {
+	animation: lp-rise 0.5s ease-out both;
+}
+.lp-pop {
+	animation: lp-pop 0.45s cubic-bezier(0.2, 0.9, 0.3, 1.2) both;
+}
+.lp-slide {
+	animation: lp-slide 0.5s cubic-bezier(0.2, 0.9, 0.3, 1) both;
+}
+.lp-bar {
+	animation: lp-bar 0.8s ease-in-out infinite;
+}
+.lp-ring {
+	animation: lp-ring 1.2s ease-out infinite;
+}
+.lp-draw {
+	stroke-dasharray: 1;
+	animation: lp-draw 2.4s ease-in-out 1.6s both;
+}
+.lp-float {
+	animation: lp-float 7s ease-in-out infinite;
+}
+.lp-blob {
+	animation: lp-blob 18s ease-in-out infinite;
+}
+.lp-caret {
+	animation: lp-caret 1s step-end infinite;
+}
+.lp-reveal {
+	opacity: 0;
+	transform: translateY(24px);
+}
+.lp-reveal-in {
+	opacity: 1;
+	transform: none;
+	transition:
+		opacity 0.7s ease-out,
+		transform 0.7s ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.lp-rise,
+	.lp-pop,
+	.lp-slide,
+	.lp-bar,
+	.lp-ring,
+	.lp-draw,
+	.lp-float,
+	.lp-blob,
+	.lp-caret {
+		animation: none;
+	}
+	.lp-reveal {
+		opacity: 1;
+		transform: none;
+	}
+}

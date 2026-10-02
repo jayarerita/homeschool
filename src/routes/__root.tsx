@@ -29,7 +29,8 @@ export const Route = createRootRoute({
 			{ name: "viewport", content: "width=device-width, initial-scale=1" },
 			...seo({
 				title: "Homeschool",
-				description: "Homeschool planner with an AI tutor.",
+				description:
+					"Open-source homeschool planner with an AI tutor, kid-friendly spoken lessons and a speaker device. Host it in your own AWS account.",
 			}),
 		],
 		links: [
