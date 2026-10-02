@@ -48,9 +48,11 @@ modules (client, context, tools) rather than a second agent.
   which invokes the Lambda asynchronously. The Lambda streams Claude's reply
   into the assistant message (throttled updates, `status: streaming` → `done`
   or `error`); the UI watches with `observeQuery`.
-- **Model**: adaptive thinking at `medium` effort. By default Claude Opus 4.8
-  via Claude in Amazon Bedrock (`anthropic.claude-opus-4-8`, open to every
+- **Model**: adaptive thinking at `medium` effort. By default Claude Sonnet 5
+  via Claude in Amazon Bedrock (`anthropic.claude-sonnet-5`, open to every
   Bedrock account; Lambda IAM role, `bedrock-mantle:CreateInference`).
+  Sonnet 5 doesn't accept mid-conversation system messages, so for it the
+  per-turn context is folded into the user turn (`foldSystemMessages`).
   `TUTOR_MODEL` overrides it (e.g. `anthropic.claude-opus-5-5`, which Bedrock
   gates per account). Alternatively the Claude API (Opus 5.5) with an
   `ANTHROPIC_API_KEY` secret and `TUTOR_PROVIDER=anthropic`, or any model on
@@ -232,7 +234,7 @@ depend on the input channel.
 
 ## Default decisions (revisit as needed)
 
-- Bedrock by default (Claude Opus 4.8), Anthropic API optional.
+- Bedrock by default (Claude Sonnet 5), Anthropic API optional.
 - Kids use "kid mode" on a parent's device until phase 6.
 - One household per deployment.
 - The planner creates **draft** days that a parent publishes.

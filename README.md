@@ -48,14 +48,14 @@ tutor** (changes apply within a minute, no redeploy):
 | Option | Notes |
 |---|---|
 | **Claude, with an API key** | The most capable tutor (Claude Opus 5.5, or Sonnet 5.5 at about half the cost). Paste a key from console.anthropic.com; it's verified with Anthropic and stored privately in your AWS account. Set a monthly spend limit in the Claude Console. |
-| **Claude on Amazon Bedrock** | Billed through AWS, using the backend's IAM role. Your AWS account must be able to use Anthropic models on Bedrock (they're enabled through AWS Marketplace on first use; if Bedrock returns `AccessDeniedException` for Claude, contact AWS Support). |
+| **Claude on Amazon Bedrock** | Claude Sonnet 5 by default (Opus 4.8 / 5.5 and Sonnet 5.5 also selectable), billed through AWS using the backend's IAM role. Your AWS account must be able to use Anthropic models on Bedrock (they're enabled through AWS Marketplace on first use; if Bedrock returns `AccessDeniedException` for Claude, contact AWS Support). |
 | **Gemma 4 on Amazon Bedrock** | Works on any AWS account. A noticeably less capable tutor; it can't read PDF or image attachments. |
 
 A Claude Pro or Max subscription can't be used: Anthropic only allows those
 plans in its own apps, so third-party apps like this one use an API key.
 
 Until an admin saves a choice, the deployment default applies: Claude on
-Bedrock (Opus 4.8), or whatever `TUTOR_PROVIDER` (`bedrock`, `anthropic`,
+Bedrock (Claude Sonnet 5), or whatever `TUTOR_PROVIDER` (`bedrock`, `anthropic`,
 `bedrock-openai`), `TUTOR_MODEL` and the `ANTHROPIC_API_KEY` sandbox secret set
 at deploy time.
 

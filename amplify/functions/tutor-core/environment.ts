@@ -3,7 +3,7 @@ import { secret } from "@aws-amplify/backend";
 // Which model serves the tutor and planner, chosen when the backend is
 // deployed (see ./model.ts):
 //   TUTOR_PROVIDER=bedrock        (default) Claude in Amazon Bedrock, via the
-//                                 function's IAM role (Claude Opus 4.8).
+//                                 function's IAM role (Claude Sonnet 5).
 //   TUTOR_PROVIDER=anthropic      the Claude API (Claude Opus 5.5). Store the key
 //                                 with `npx ampx sandbox secret set ANTHROPIC_API_KEY`.
 //   TUTOR_PROVIDER=bedrock-openai a model on Bedrock's OpenAI-compatible

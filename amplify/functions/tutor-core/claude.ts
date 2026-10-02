@@ -32,6 +32,57 @@ export function withCacheBreakpoint(messages: MessageParam[]): MessageParam[] {
 	return [...messages.slice(0, -1), { ...last, content: marked }];
 }
 
+// Models that accept {role: "system"} entries mid-conversation (how the
+// tutor delivers each turn's household context). Others get the context
+// folded into the user turn instead.
+const NO_MID_CONVERSATION_SYSTEM = new Set([
+	"claude-sonnet-5",
+	"anthropic.claude-sonnet-5",
+]);
+
+// Models documented to accept the Claude API's server-side `fallbacks`.
+const SERVER_FALLBACK_MODELS = new Set([
+	"claude-opus-5-5",
+	"claude-opus-5",
+	"claude-sonnet-5-5",
+	"claude-fable-5-1",
+]);
+
+// Replaces mid-conversation system messages with a text block on the user
+// turn they follow. Deterministic, so replayed history keeps the same prefix
+// (prompt caching and thinking blocks depend on that).
+export function foldSystemMessages(messages: MessageParam[]): MessageParam[] {
+	const out: MessageParam[] = [];
+	for (const message of messages) {
+		const previous = out.at(-1);
+		if (message.role === "system" && previous?.role === "user") {
+			const text =
+				typeof message.content === "string"
+					? message.content
+					: message.content
+							.flatMap((b) => (b.type === "text" ? [b.text] : []))
+							.join("\n\n");
+			const blocks =
+				typeof previous.content === "string"
+					? [{ type: "text" as const, text: previous.content }]
+					: previous.content;
+			out[out.length - 1] = {
+				...previous,
+				content: [
+					...blocks,
+					{
+						type: "text",
+						text: `[Context from the app, not typed by the parent]\n${text}`,
+					},
+				],
+			};
+		} else {
+			out.push(message);
+		}
+	}
+	return out;
+}
+
 export class ClaudeModel implements ModelClient {
 	#anthropic?: Anthropic;
 	#bedrock?: AnthropicBedrockMantle;
@@ -79,15 +130,23 @@ export class ClaudeModel implements ModelClient {
 			tools: request.tools.map((t) => ({ ...t, eager_input_streaming: true })),
 			thinking: { type: "adaptive" as const },
 			output_config: { effort: "medium" as const },
-			messages: withCacheBreakpoint(request.messages),
+			messages: withCacheBreakpoint(
+				NO_MID_CONVERSATION_SYSTEM.has(this.#model)
+					? foldSystemMessages(request.messages)
+					: request.messages,
+			),
 		};
 		if (this.#anthropic) {
 			// The Claude API handles refusal fallbacks server-side.
-			return this.#anthropic.beta.messages.stream({
-				...params,
-				betas: ["server-side-fallback-2026-07-01"],
-				fallbacks: "default",
-			});
+			return this.#anthropic.beta.messages.stream(
+				SERVER_FALLBACK_MODELS.has(this.#model)
+					? {
+							...params,
+							betas: ["server-side-fallback-2026-07-01"],
+							fallbacks: "default",
+						}
+					: params,
+			);
 		}
 		if (!this.#bedrock) throw new Error("No Claude client configured.");
 		return this.#bedrock.beta.messages.stream(params, {

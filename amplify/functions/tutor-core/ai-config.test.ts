@@ -5,7 +5,7 @@ describe("resolveAiConfig", () => {
 	it("uses the deployment environment when nothing is saved", () => {
 		expect(resolveAiConfig(null, {})).toEqual({
 			provider: "bedrock",
-			model: "anthropic.claude-opus-4-8",
+			model: "anthropic.claude-sonnet-5",
 			anthropicApiKey: undefined,
 			source: "deployment",
 		});

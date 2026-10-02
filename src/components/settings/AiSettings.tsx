@@ -36,6 +36,7 @@ const PROVIDER_INFO: Record<Provider, { label: string; description: string }> =
 const MODEL_LABELS: Record<string, string> = {
 	"claude-opus-5-5": "Claude Opus 5.5 (best)",
 	"claude-sonnet-5-5": "Claude Sonnet 5.5 (about half the cost)",
+	"anthropic.claude-sonnet-5": "Claude Sonnet 5",
 	"anthropic.claude-opus-4-8": "Claude Opus 4.8",
 	"anthropic.claude-opus-5-5": "Claude Opus 5.5 (needs account access)",
 	"anthropic.claude-sonnet-5-5": "Claude Sonnet 5.5 (needs account access)",

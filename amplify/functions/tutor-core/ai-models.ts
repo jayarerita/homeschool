@@ -12,8 +12,10 @@ export const PROVIDERS: readonly Provider[] = [
 // The models offered per provider; the first is the default.
 export const MODELS: Record<Provider, readonly string[]> = {
 	anthropic: ["claude-opus-5-5", "claude-sonnet-5-5"],
-	// Opus 4.8 first: Bedrock gates Opus 5.5 and Sonnet 5.5 per account.
+	// Sonnet 5 first: open to every Bedrock account and cheaper than Opus.
+	// Bedrock gates Opus 5.5 and Sonnet 5.5 per account.
 	bedrock: [
+		"anthropic.claude-sonnet-5",
 		"anthropic.claude-opus-4-8",
 		"anthropic.claude-opus-5-5",
 		"anthropic.claude-sonnet-5-5",
