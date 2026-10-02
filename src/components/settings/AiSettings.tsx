@@ -43,7 +43,14 @@ const MODEL_LABELS: Record<string, string> = {
 	"google.gemma-4-31b": "Gemma 4 31B",
 };
 
+// The app's API client is built from amplify_outputs.json, which only lists
+// these operations after the backend has been deployed with them.
+const NEEDS_DEPLOY = new Error(
+	"The backend hasn't been updated for this setting yet. Deploy the backend (e.g. npx ampx sandbox), then reload this page.",
+);
+
 async function loadAiSettings() {
+	if (typeof client.queries.aiSettings !== "function") throw NEEDS_DEPLOY;
 	return unwrap(await client.queries.aiSettings());
 }
 
@@ -56,6 +63,8 @@ export default function AiSettings() {
 	} = useQuery({
 		queryKey: ["aiSettings"],
 		queryFn: loadAiSettings,
+		// Retrying can't help until the backend is deployed.
+		retry: (failures, err) => err !== NEEDS_DEPLOY && failures < 3,
 	});
 
 	const [provider, setProvider] = useState<Provider>("bedrock");
@@ -71,10 +80,14 @@ export default function AiSettings() {
 	}, [current]);
 
 	const save = useMutation({
-		mutationFn: async (vars: { apiKey?: string; clearApiKey?: boolean }) =>
-			unwrap(
+		mutationFn: async (vars: { apiKey?: string; clearApiKey?: boolean }) => {
+			if (typeof client.mutations.setAiSettings !== "function") {
+				throw NEEDS_DEPLOY;
+			}
+			return unwrap(
 				await client.mutations.setAiSettings({ provider, model, ...vars }),
-			),
+			);
+		},
 		onSuccess: (saved) => {
 			setApiKey("");
 			setReplacingKey(false);
