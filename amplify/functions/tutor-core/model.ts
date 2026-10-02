@@ -1,4 +1,5 @@
 import type Anthropic from "@anthropic-ai/sdk";
+import { currentAiConfig } from "./ai-config";
 
 // The tutor's conversation is kept in Claude's Messages format (that's what
 // is stored and replayed); each model client translates as needed.
@@ -32,41 +33,27 @@ export interface ModelClient {
 	step(request: StepRequest): Promise<ModelStep>;
 }
 
-// Which model serves the tutor, chosen at deploy time (see ./environment.ts):
-//   bedrock         Claude in Amazon Bedrock (default)
-//   anthropic       the Claude API
-//   bedrock-openai  any model on Bedrock's OpenAI-compatible Chat Completions
-//                   endpoint, e.g. google.gemma-4-31b
-export type Provider = "bedrock" | "anthropic" | "bedrock-openai";
-
-export function provider(): Provider {
-	const value = process.env.TUTOR_PROVIDER;
-	return value === "anthropic" || value === "bedrock-openai"
-		? value
-		: "bedrock";
-}
-
-const DEFAULT_MODEL: Record<Provider, string> = {
-	// Opus 4.8 rather than 5.5: Bedrock gates Opus 5.5 per account.
-	bedrock: "anthropic.claude-opus-4-8",
-	anthropic: "claude-opus-5-5",
-	"bedrock-openai": "google.gemma-4-31b",
-};
-
-export function modelId(): string {
-	return process.env.TUTOR_MODEL || DEFAULT_MODEL[provider()];
-}
-
+// The provider and model come from Settings, or the deploy-time environment
+// when nothing is saved (see ./ai-config.ts).
 export async function createModelClient(): Promise<ModelClient> {
-	if (provider() === "bedrock-openai") {
+	const config = await currentAiConfig();
+	if (config.provider === "bedrock-openai") {
 		const { OpenAICompatibleModel } = await import("./openai-compatible");
-		return new OpenAICompatibleModel(modelId());
+		return new OpenAICompatibleModel(config.model);
 	}
 	const { ClaudeModel } = await import("./claude");
-	return new ClaudeModel(
-		provider() === "anthropic" ? "anthropic" : "bedrock",
-		modelId(),
-	);
+	if (config.provider === "anthropic") {
+		if (!config.anthropicApiKey) {
+			throw new Error(
+				"The tutor is set to use the Claude API, but no API key is saved. An admin can add one in Settings → AI tutor.",
+			);
+		}
+		return new ClaudeModel(
+			{ kind: "anthropic", apiKey: config.anthropicApiKey },
+			config.model,
+		);
+	}
+	return new ClaudeModel({ kind: "bedrock" }, config.model);
 }
 
 // A readable message for a failed model request, using the service's own

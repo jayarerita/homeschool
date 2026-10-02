@@ -58,7 +58,12 @@ modules (client, context, tools) rather than a second agent.
   default `google.gemma-4-31b`; `tutor-core/openai-compatible.ts` converts
   the stored Claude-format conversation to Chat Completions and back, signing
   with SigV4). The agent loop only sees the `ModelClient` interface
-  (`tutor-core/model.ts`). Refusal
+  (`tutor-core/model.ts`).
+  An admin picks the provider and model in Settings (`aiSettings` /
+  `setAiSettings`, served by household-jobs); the choice and any Claude API
+  key are stored at `system/ai-provider.json` in the household bucket (not
+  browser-readable, SSE), cached for a minute in the Lambdas, and fall back to
+  the deploy-time environment when unset (`tutor-core/ai-config.ts`). Refusal
   fallbacks: server-side `fallbacks: "default"` on the Claude API; the SDK's
   client-side middleware to Opus 4.8 on Bedrock when the main model differs.
 - **History**: each completed turn's exact API messages (user message, the

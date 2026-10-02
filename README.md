@@ -42,32 +42,22 @@ Children, their label colors, birthdays and other details are set up in
 
 ## The tutor
 
-The tutor runs on Claude by default: **Claude Opus 4.8 in Amazon Bedrock**,
-called with the backend's own IAM role (no API key). Deploy
-(`npm run amplify:sandbox`) and the tutor appears in the chat panel.
+An admin chooses which AI the tutor and planner use in **Settings → AI
+tutor** (changes apply within a minute, no redeploy):
 
-Third-party models on Bedrock (Anthropic, xAI, ...) are enabled through AWS
-Marketplace the first time they're used. If your account can't use them yet
-(the tutor shows "not available for this account", and the Bedrock playground
-returns `AccessDeniedException` for Claude), contact AWS Support, or use one of
-the other providers below. Once Opus 5.5 works for your account, deploy with
-`TUTOR_MODEL=anthropic.claude-opus-5-5`.
+| Option | Notes |
+|---|---|
+| **Claude, with an API key** | The most capable tutor (Claude Opus 5.5, or Sonnet 5.5 at about half the cost). Paste a key from console.anthropic.com; it's verified with Anthropic and stored privately in your AWS account. Set a monthly spend limit in the Claude Console. |
+| **Claude on Amazon Bedrock** | Billed through AWS, using the backend's IAM role. Your AWS account must be able to use Anthropic models on Bedrock (they're enabled through AWS Marketplace on first use; if Bedrock returns `AccessDeniedException` for Claude, contact AWS Support). |
+| **Gemma 4 on Amazon Bedrock** | Works on any AWS account. A noticeably less capable tutor; it can't read PDF or image attachments. |
 
-Other providers, chosen at deploy time:
+A Claude Pro or Max subscription can't be used: Anthropic only allows those
+plans in its own apps, so third-party apps like this one use an API key.
 
-```bash
-# The Claude API (Claude Opus 5.5), billed by Anthropic
-npx ampx sandbox secret set ANTHROPIC_API_KEY
-TUTOR_PROVIDER=anthropic npm run amplify:sandbox
-
-# A model on Bedrock's OpenAI-compatible endpoint, e.g. Google's Gemma 4 31B.
-# Handy when Claude isn't available on your account yet. Expect a noticeably
-# less capable tutor; it can't read PDF or image attachments.
-TUTOR_PROVIDER=bedrock-openai npm run amplify:sandbox
-```
-
-On Windows PowerShell, set variables with `$env:TUTOR_PROVIDER="bedrock-openai";`
-before the command. `TUTOR_MODEL` overrides the model ID for any provider.
+Until an admin saves a choice, the deployment default applies: Claude on
+Bedrock (Opus 4.8), or whatever `TUTOR_PROVIDER` (`bedrock`, `anthropic`,
+`bedrock-openai`), `TUTOR_MODEL` and the `ANTHROPIC_API_KEY` sandbox secret set
+at deploy time.
 
 ## Planner and notifications
 

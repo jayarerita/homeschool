@@ -295,6 +295,36 @@ const schema = a
 			})
 			.authorization((allow) => [allow.owner()]),
 
+		// ── AI provider (admin only) ──
+		// The API key itself is never returned; only its last four characters.
+		AiSettings: a.customType({
+			provider: a.string().required(),
+			model: a.string().required(),
+			keyHint: a.string(),
+			// "settings" when chosen in the app, "deployment" when from env vars.
+			source: a.string().required(),
+		}),
+
+		aiSettings: a
+			.query()
+			.returns(a.ref("AiSettings"))
+			.authorization((allow) => [allow.group(GROUPS.admin)])
+			.handler(a.handler.function(householdJobs)),
+
+		// apiKey: a new Claude API key (verified before saving); clearApiKey
+		// removes the saved one.
+		setAiSettings: a
+			.mutation()
+			.arguments({
+				provider: a.string().required(),
+				model: a.string().required(),
+				apiKey: a.string(),
+				clearApiKey: a.boolean(),
+			})
+			.returns(a.ref("AiSettings"))
+			.authorization((allow) => [allow.group(GROUPS.admin)])
+			.handler(a.handler.function(householdJobs)),
+
 		pushPublicKey: a
 			.query()
 			.returns(a.string())

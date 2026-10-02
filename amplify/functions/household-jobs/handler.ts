@@ -1,6 +1,7 @@
 import type { AppSyncIdentityCognito } from "aws-lambda";
 import { isValidTimeZone } from "../tutor-core/context";
 import { type DataClient, dataClient, unwrap } from "../tutor-core/data";
+import { getAiSettings, setAiSettings } from "./ai-settings";
 import {
 	feedbackRequest,
 	materialsReminder,
@@ -17,8 +18,9 @@ import {
 	type Settings,
 } from "./schedule";
 
-// This function runs hourly on a schedule and also serves three AppSync
-// operations: pushPublicKey, sendTestNotification and draftDay.
+// This function runs hourly on a schedule and also serves these AppSync
+// operations: pushPublicKey, sendTestNotification, draftDay, and the admin's
+// aiSettings / setAiSettings.
 type AppSyncEvent = {
 	fieldName?: string;
 	info?: { fieldName?: string };
@@ -91,6 +93,15 @@ export const handler = async (event: AppSyncEvent) => {
 	switch (fieldName) {
 		case undefined:
 			return hourlyTick(client);
+
+		case "aiSettings":
+			return getAiSettings();
+
+		case "setAiSettings":
+			return setAiSettings(
+				event.arguments ?? {},
+				event.identity?.username ?? "unknown",
+			);
 
 		case "pushPublicKey":
 			return (await getVapidKeys()).publicKey;

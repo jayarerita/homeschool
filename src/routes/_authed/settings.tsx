@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowLeft } from "lucide-react";
+import AiSettings from "~/components/settings/AiSettings";
 import ChildrenSettings from "~/components/settings/ChildrenSettings";
 import ImportSettings from "~/components/settings/ImportSettings";
 import MembersSettings from "~/components/settings/MembersSettings";
@@ -34,6 +35,7 @@ function SettingsPage() {
 				<ChildrenSettings />
 				<NotificationSettings />
 				<PlannerSettings />
+				{isAdmin && <AiSettings />}
 				{isAdmin && <MembersSettings />}
 				<ImportSettings />
 			</main>

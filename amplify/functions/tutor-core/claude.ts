@@ -39,11 +39,13 @@ export class ClaudeModel implements ModelClient {
 	// Pins the rest of this turn to the fallback model once it has taken over.
 	#fallbackState = new BetaFallbackState();
 
-	constructor(provider: "anthropic" | "bedrock", model: string) {
+	constructor(
+		provider: { kind: "anthropic"; apiKey: string } | { kind: "bedrock" },
+		model: string,
+	) {
 		this.#model = model;
-		if (provider === "anthropic") {
-			// Reads ANTHROPIC_API_KEY from the environment.
-			this.#anthropic = new Anthropic();
+		if (provider.kind === "anthropic") {
+			this.#anthropic = new Anthropic({ apiKey: provider.apiKey });
 		} else {
 			// Signs requests with the Lambda role's credentials.
 			this.#bedrock = new AnthropicBedrockMantle({

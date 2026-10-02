@@ -21,6 +21,9 @@ const tutorLambda = backend.tutorTurn.resources.lambda;
 const bucket = backend.storage.resources.bucket;
 bucket.grantRead(tutorLambda, "uploads/*");
 bucket.grantReadWrite(tutorLambda, "tutor/*");
+// The admin's AI provider choice (and Claude API key), written by
+// household-jobs from Settings.
+bucket.grantRead(tutorLambda, "system/ai-provider.json");
 backend.tutorTurn.addEnvironment("HOUSEHOLD_BUCKET", bucket.bucketName);
 
 // The household jobs (planner, reminders) read uploads through the tutor's
