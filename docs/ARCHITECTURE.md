@@ -226,8 +226,11 @@ depend on the input channel.
    conversations started from an activity.
 5. **Planner + notifications** — hourly household jobs, draft-day review,
    activity feedback, in-app notifications, Web Push, optional SES email.
-6. **Lesson mode + kid accounts** — guided session UI, kid UI, worksheet
-   generation from `prompts` stored in S3.
+6. **Kid mode + lessons** — kid mode on a parent's device (per-child view,
+   localStorage lock, math-question parent check; no kid logins yet), a
+   full-screen lesson view with browser read-aloud and speech input, the tutor
+   wrapping up lessons with an observation, and `create_worksheet` (sanitized,
+   CSP-locked HTML in `uploads/worksheets/`, printed from a sandboxed iframe).
 7. **Voice device** — device client, `DEVICE` group, voice pipeline.
 8. **Open-source polish** — deploy guide (Amplify deploy, secrets, Bedrock
    model access), seed data, contributing guide.

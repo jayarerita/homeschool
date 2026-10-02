@@ -1,11 +1,16 @@
 import type Anthropic from "@anthropic-ai/sdk";
-import { GetObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import {
+	GetObjectCommand,
+	PutObjectCommand,
+	S3Client,
+} from "@aws-sdk/client-s3";
 import { z } from "zod";
 import { planInsert } from "../../../src/lib/planning";
 import { COLOR_TOKENS } from "../../data/colors";
 import type { Schema } from "../../data/resource";
 import { addDays, describeDate, describeItem, type Household } from "./context";
 import { type DataClient, unwrap } from "./data";
+import { sanitizeWorksheetHtml } from "./worksheet";
 
 type AgendaItem = Schema["AgendaItem"]["type"];
 type ToolResultContent = Anthropic.Beta.BetaToolResultBlockParam["content"];
@@ -527,6 +532,59 @@ const TOOLS = [
 				return Buffer.from(bytes).toString("utf8").slice(0, 200_000);
 			}
 			throw new Error(`Can't read files of type ${type || "unknown"}`);
+		},
+	}),
+
+	tool({
+		name: "create_worksheet",
+		description:
+			"Create a printable one-page worksheet (tracing, counting, matching, coloring, cutting) and attach it to an activity, where parents can open and print it. Write it for the child's age: big, simple, and fun.",
+		input: z.object({
+			agenda_item_id: z.string().describe("The activity to attach it to"),
+			title: z.string().min(1),
+			child_ids: z.array(z.string()).optional(),
+			html: z
+				.string()
+				.min(1)
+				.max(200_000)
+				.describe(
+					"A complete, self-contained HTML page for one US-letter sheet in portrait: inline <style> only (use @page { size: letter; margin: 0.5in }), no scripts, no external images, fonts or links. Draw pictures with inline SVG or large emoji. Include a 'Name: ____' line, large print, thick dotted lines for tracing, and plenty of white space.",
+				),
+		}),
+		async run(input, { client, household, activity }) {
+			assertKnownChildren(household, input.child_ids);
+			const item = unwrap(
+				await client.models.AgendaItem.get({ id: input.agenda_item_id }),
+			);
+			if (!item) throw new Error(`No activity with id ${input.agenda_item_id}`);
+			const key = `uploads/worksheets/${crypto.randomUUID()}.html`;
+			await s3.send(
+				new PutObjectCommand({
+					Bucket: process.env.HOUSEHOLD_BUCKET,
+					Key: key,
+					Body: sanitizeWorksheetHtml(input.html),
+					ContentType: "text/html; charset=utf-8",
+				}),
+			);
+			const resources = (item.resources ?? []).filter((r) => !!r);
+			unwrap(
+				await client.models.AgendaItem.update({
+					id: item.id,
+					resources: [
+						...resources,
+						{
+							id: crypto.randomUUID(),
+							label: input.title,
+							type: "worksheet",
+							s3Key: key,
+							description: "Printable worksheet",
+							childIds: input.child_ids?.length ? input.child_ids : null,
+						},
+					],
+				}),
+			);
+			activity.push(`Made worksheet “${input.title}” for “${item.title}”`);
+			return JSON.stringify({ attached_to: item.id, file: key });
 		},
 	}),
 ];

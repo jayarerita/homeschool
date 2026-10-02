@@ -18,6 +18,7 @@ import {
 	listLibrary,
 	RESOURCE_KINDS,
 	type ResourceKind,
+	resourceKindLabel,
 } from "~/lib/planning-data";
 
 export const Route = createFileRoute("/_authed/planning/library")({
@@ -25,7 +26,7 @@ export const Route = createFileRoute("/_authed/planning/library")({
 });
 
 function kindLabel(kind: ResourceKind): string {
-	return RESOURCE_KINDS.find((k) => k.value === kind)?.label ?? kind;
+	return resourceKindLabel(kind);
 }
 
 function ageLabel(min?: number | null, max?: number | null): string | null {

@@ -21,6 +21,9 @@ const tutorLambda = backend.tutorTurn.resources.lambda;
 const bucket = backend.storage.resources.bucket;
 bucket.grantRead(tutorLambda, "uploads/*");
 bucket.grantReadWrite(tutorLambda, "tutor/*");
+// Worksheets the tutor writes (create_worksheet), readable by parents through
+// the uploads/* storage rule.
+bucket.grantPut(tutorLambda, "uploads/worksheets/*");
 // The admin's AI provider choice (and Claude API key), written by
 // household-jobs from Settings.
 bucket.grantRead(tutorLambda, "system/ai-provider.json");
@@ -31,6 +34,7 @@ backend.tutorTurn.addEnvironment("HOUSEHOLD_BUCKET", bucket.bucketName);
 const jobsLambda = backend.householdJobs.resources.lambda;
 bucket.grantRead(jobsLambda, "uploads/*");
 bucket.grantReadWrite(jobsLambda, "system/*");
+bucket.grantPut(jobsLambda, "uploads/worksheets/*");
 backend.householdJobs.addEnvironment("HOUSEHOLD_BUCKET", bucket.bucketName);
 
 // Claude in Amazon Bedrock (the default provider; see

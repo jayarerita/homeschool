@@ -7,6 +7,7 @@ import {
 	Plus,
 	Printer,
 	Settings,
+	Smile,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import ActivityForm, { toActivityDraft } from "~/components/ActivityForm";
@@ -33,6 +34,7 @@ import {
 } from "~/lib/agenda-mutations";
 import { colorClasses } from "~/lib/colors";
 import { getHouseholdSettings } from "~/lib/household";
+import { createLessonConversation } from "~/lib/tutor";
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -135,6 +137,14 @@ function HomeschoolApp() {
 								Homeschool
 							</span>
 							<div className="flex items-center gap-1">
+								<Link
+									to="/kid"
+									aria-label="Kid mode"
+									title="Kid mode: hand the device to a child"
+									className="rounded-lg p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600"
+								>
+									<Smile className="h-4 w-4" />
+								</Link>
 								<NotificationBell />
 								<Link
 									to="/planning"
@@ -311,16 +321,19 @@ function HomeschoolApp() {
 														? () => move(index, 1)
 														: undefined
 												}
-												onTeach={() => {
+												onTeach={async () => {
 													const kids = (item.childIds ?? []).filter(
 														(id): id is string => !!id,
 													);
-													chat.startLesson(
+													const lesson = await createLessonConversation(
 														item,
 														activeChildId ??
 															(kids.length === 1 ? kids[0] : null),
 													);
-													setChatOpen(true);
+													navigate({
+														to: "/lesson/$conversationId",
+														params: { conversationId: lesson.id },
+													});
 												}}
 												footer={
 													item.date <= today && item.source !== "routine" ? (

@@ -1,3 +1,4 @@
+import { Link as RouterLink } from "@tanstack/react-router";
 import {
 	ArrowDown,
 	ArrowUp,
@@ -12,6 +13,8 @@ import {
 	Package,
 	Paperclip,
 	Pencil,
+	PencilRuler,
+	Printer,
 	StickyNote,
 	Video,
 } from "lucide-react";
@@ -28,6 +31,7 @@ const RESOURCE_ICONS = {
 	note: StickyNote,
 	book: BookOpen,
 	material: Package,
+	worksheet: PencilRuler,
 };
 
 // Children assigned to an item or resource, in household order. Only shown in
@@ -154,7 +158,18 @@ function ResourceCard({
 							Open link
 						</a>
 					)}
-					{resource.s3Key && (
+					{resource.s3Key && resource.type === "worksheet" && (
+						<RouterLink
+							to="/worksheet"
+							search={{ key: resource.s3Key }}
+							target="_blank"
+							className="mb-2 inline-flex items-center gap-1 text-xs font-medium text-indigo-500 hover:underline"
+						>
+							<Printer className="h-3 w-3" />
+							Open worksheet
+						</RouterLink>
+					)}
+					{resource.s3Key && resource.type !== "worksheet" && (
 						<button
 							type="button"
 							onClick={() => resource.s3Key && openFile(resource.s3Key)}

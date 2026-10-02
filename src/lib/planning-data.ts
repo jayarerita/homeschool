@@ -9,11 +9,20 @@ export type ResourceKind = NonNullable<Schema["ResourceRef"]["type"]["type"]>;
 export const RESOURCE_KINDS: { value: ResourceKind; label: string }[] = [
 	{ value: "link", label: "Link" },
 	{ value: "video", label: "Video" },
-	{ value: "pdf", label: "PDF / worksheet" },
+	{ value: "pdf", label: "PDF" },
 	{ value: "book", label: "Book" },
 	{ value: "material", label: "Materials" },
 	{ value: "note", label: "Note" },
 ];
+
+// Types parents pick when adding a resource (above), plus "worksheet", which
+// only the tutor creates.
+export function resourceKindLabel(
+	kind: ResourceKind | null | undefined,
+): string {
+	if (kind === "worksheet") return "Printable worksheet";
+	return RESOURCE_KINDS.find((k) => k.value === kind)?.label ?? "Note";
+}
 
 export async function listLibrary(): Promise<LibraryResource[]> {
 	const resources = unwrap(

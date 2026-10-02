@@ -1,3 +1,4 @@
+import { Link } from "@tanstack/react-router";
 import { Bot, Check, GraduationCap, Plus, RotateCcw, Send } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import Markdown from "react-markdown";
@@ -142,7 +143,14 @@ function LessonBanner({
 			<span>
 				Lesson: <span className="font-semibold">{conversation.title}</span>
 				{child && ` with ${child.name}`}. The tutor talks to{" "}
-				{child?.name ?? "your child"} directly.
+				{child?.name ?? "your child"} directly.{" "}
+				<Link
+					to="/lesson/$conversationId"
+					params={{ conversationId: conversation.id }}
+					className="font-semibold underline"
+				>
+					Open lesson view
+				</Link>
 			</span>
 		</div>
 	);

@@ -1,6 +1,31 @@
-import { createFileRoute, Outlet } from "@tanstack/react-router";
+import {
+	createFileRoute,
+	Outlet,
+	useNavigate,
+	useRouterState,
+} from "@tanstack/react-router";
+import { useEffect } from "react";
 import { Login } from "~/components/Login";
 import { AuthContext, useAuth } from "~/hooks/useAuth";
+import { allowedInKidMode, getKidMode } from "~/lib/kid-mode";
+
+// While kid mode is on, the device stays on that child's view and lessons;
+// anything else (a typed URL, a reload elsewhere) goes back to the child.
+function KidModeLock() {
+	const navigate = useNavigate();
+	const pathname = useRouterState({ select: (s) => s.location.pathname });
+	useEffect(() => {
+		const kid = getKidMode();
+		if (kid && !allowedInKidMode(pathname, kid.childId)) {
+			navigate({
+				to: "/kid/$childId",
+				params: { childId: kid.childId },
+				replace: true,
+			});
+		}
+	}, [pathname, navigate]);
+	return null;
+}
 
 export const Route = createFileRoute("/_authed")({
 	component: AuthGuard,
@@ -22,8 +47,8 @@ function AuthGuard() {
 		return <Login />;
 	}
 
-	// Kid and device experiences arrive in later phases; for now the app is
-	// parent-only. See docs/ARCHITECTURE.md.
+	// Kids use the app through kid mode on a parent's device; CHILD and DEVICE
+	// accounts get their own experiences later. See docs/ARCHITECTURE.md.
 	if (!isParent) {
 		return (
 			<div className="flex min-h-screen flex-col items-center justify-center gap-3 p-6 text-center">
@@ -51,6 +76,7 @@ function AuthGuard() {
 
 	return (
 		<AuthContext.Provider value={auth}>
+			<KidModeLock />
 			<Outlet />
 		</AuthContext.Provider>
 	);

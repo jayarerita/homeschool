@@ -17,6 +17,10 @@ import { Route as AuthedIndexRouteImport } from './routes/_authed/index'
 import { Route as AuthedPlanningRouteImport } from './routes/_authed/planning'
 import { Route as AuthedPrintRouteImport } from './routes/_authed/print'
 import { Route as AuthedSettingsRouteImport } from './routes/_authed/settings'
+import { Route as AuthedWorksheetRouteImport } from './routes/_authed/worksheet'
+import { Route as AuthedKidIndexRouteImport } from './routes/_authed/kid/index'
+import { Route as AuthedKidChildIdRouteImport } from './routes/_authed/kid/$childId'
+import { Route as AuthedLessonConversationIdRouteImport } from './routes/_authed/lesson/$conversationId'
 import { Route as AuthedPlanningIndexRouteImport } from './routes/_authed/planning/index'
 import { Route as AuthedPlanningLibraryRouteImport } from './routes/_authed/planning/library'
 import { Route as AuthedPlanningRoutinesRouteImport } from './routes/_authed/planning/routines'
@@ -61,6 +65,27 @@ const AuthedSettingsRoute = AuthedSettingsRouteImport.update({
   path: '/settings',
   getParentRoute: () => AuthedRoute,
 } as any)
+const AuthedWorksheetRoute = AuthedWorksheetRouteImport.update({
+  id: '/worksheet',
+  path: '/worksheet',
+  getParentRoute: () => AuthedRoute,
+} as any)
+const AuthedKidIndexRoute = AuthedKidIndexRouteImport.update({
+  id: '/kid/',
+  path: '/kid/',
+  getParentRoute: () => AuthedRoute,
+} as any)
+const AuthedKidChildIdRoute = AuthedKidChildIdRouteImport.update({
+  id: '/kid/$childId',
+  path: '/kid/$childId',
+  getParentRoute: () => AuthedRoute,
+} as any)
+const AuthedLessonConversationIdRoute =
+  AuthedLessonConversationIdRouteImport.update({
+    id: '/lesson/$conversationId',
+    path: '/lesson/$conversationId',
+    getParentRoute: () => AuthedRoute,
+  } as any)
 const AuthedPlanningIndexRoute = AuthedPlanningIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -90,9 +115,13 @@ export interface FileRoutesByFullPath {
   '/planning': typeof AuthedPlanningRouteWithChildren
   '/print': typeof AuthedPrintRoute
   '/settings': typeof AuthedSettingsRoute
+  '/worksheet': typeof AuthedWorksheetRoute
+  '/kid/$childId': typeof AuthedKidChildIdRoute
+  '/lesson/$conversationId': typeof AuthedLessonConversationIdRoute
   '/planning/library': typeof AuthedPlanningLibraryRoute
   '/planning/routines': typeof AuthedPlanningRoutinesRoute
   '/planning/units': typeof AuthedPlanningUnitsRoute
+  '/kid/': typeof AuthedKidIndexRoute
   '/planning/': typeof AuthedPlanningIndexRoute
 }
 export interface FileRoutesByTo {
@@ -101,10 +130,14 @@ export interface FileRoutesByTo {
   '/signup': typeof SignupRoute
   '/print': typeof AuthedPrintRoute
   '/settings': typeof AuthedSettingsRoute
+  '/worksheet': typeof AuthedWorksheetRoute
   '/': typeof AuthedIndexRoute
+  '/kid/$childId': typeof AuthedKidChildIdRoute
+  '/lesson/$conversationId': typeof AuthedLessonConversationIdRoute
   '/planning/library': typeof AuthedPlanningLibraryRoute
   '/planning/routines': typeof AuthedPlanningRoutinesRoute
   '/planning/units': typeof AuthedPlanningUnitsRoute
+  '/kid': typeof AuthedKidIndexRoute
   '/planning': typeof AuthedPlanningIndexRoute
 }
 export interface FileRoutesById {
@@ -116,10 +149,14 @@ export interface FileRoutesById {
   '/_authed/planning': typeof AuthedPlanningRouteWithChildren
   '/_authed/print': typeof AuthedPrintRoute
   '/_authed/settings': typeof AuthedSettingsRoute
+  '/_authed/worksheet': typeof AuthedWorksheetRoute
   '/_authed/': typeof AuthedIndexRoute
+  '/_authed/kid/$childId': typeof AuthedKidChildIdRoute
+  '/_authed/lesson/$conversationId': typeof AuthedLessonConversationIdRoute
   '/_authed/planning/library': typeof AuthedPlanningLibraryRoute
   '/_authed/planning/routines': typeof AuthedPlanningRoutinesRoute
   '/_authed/planning/units': typeof AuthedPlanningUnitsRoute
+  '/_authed/kid/': typeof AuthedKidIndexRoute
   '/_authed/planning/': typeof AuthedPlanningIndexRoute
 }
 export interface FileRouteTypes {
@@ -132,9 +169,13 @@ export interface FileRouteTypes {
     | '/planning'
     | '/print'
     | '/settings'
+    | '/worksheet'
+    | '/kid/$childId'
+    | '/lesson/$conversationId'
     | '/planning/library'
     | '/planning/routines'
     | '/planning/units'
+    | '/kid/'
     | '/planning/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -143,10 +184,14 @@ export interface FileRouteTypes {
     | '/signup'
     | '/print'
     | '/settings'
+    | '/worksheet'
     | '/'
+    | '/kid/$childId'
+    | '/lesson/$conversationId'
     | '/planning/library'
     | '/planning/routines'
     | '/planning/units'
+    | '/kid'
     | '/planning'
   id:
     | '__root__'
@@ -157,10 +202,14 @@ export interface FileRouteTypes {
     | '/_authed/planning'
     | '/_authed/print'
     | '/_authed/settings'
+    | '/_authed/worksheet'
     | '/_authed/'
+    | '/_authed/kid/$childId'
+    | '/_authed/lesson/$conversationId'
     | '/_authed/planning/library'
     | '/_authed/planning/routines'
     | '/_authed/planning/units'
+    | '/_authed/kid/'
     | '/_authed/planning/'
   fileRoutesById: FileRoutesById
 }
@@ -229,6 +278,34 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthedSettingsRouteImport
       parentRoute: typeof AuthedRoute
     }
+    '/_authed/worksheet': {
+      id: '/_authed/worksheet'
+      path: '/worksheet'
+      fullPath: '/worksheet'
+      preLoaderRoute: typeof AuthedWorksheetRouteImport
+      parentRoute: typeof AuthedRoute
+    }
+    '/_authed/kid/': {
+      id: '/_authed/kid/'
+      path: '/kid'
+      fullPath: '/kid/'
+      preLoaderRoute: typeof AuthedKidIndexRouteImport
+      parentRoute: typeof AuthedRoute
+    }
+    '/_authed/kid/$childId': {
+      id: '/_authed/kid/$childId'
+      path: '/kid/$childId'
+      fullPath: '/kid/$childId'
+      preLoaderRoute: typeof AuthedKidChildIdRouteImport
+      parentRoute: typeof AuthedRoute
+    }
+    '/_authed/lesson/$conversationId': {
+      id: '/_authed/lesson/$conversationId'
+      path: '/lesson/$conversationId'
+      fullPath: '/lesson/$conversationId'
+      preLoaderRoute: typeof AuthedLessonConversationIdRouteImport
+      parentRoute: typeof AuthedRoute
+    }
     '/_authed/planning/': {
       id: '/_authed/planning/'
       path: '/'
@@ -282,14 +359,22 @@ interface AuthedRouteChildren {
   AuthedPlanningRoute: typeof AuthedPlanningRouteWithChildren
   AuthedPrintRoute: typeof AuthedPrintRoute
   AuthedSettingsRoute: typeof AuthedSettingsRoute
+  AuthedWorksheetRoute: typeof AuthedWorksheetRoute
   AuthedIndexRoute: typeof AuthedIndexRoute
+  AuthedKidChildIdRoute: typeof AuthedKidChildIdRoute
+  AuthedLessonConversationIdRoute: typeof AuthedLessonConversationIdRoute
+  AuthedKidIndexRoute: typeof AuthedKidIndexRoute
 }
 
 const AuthedRouteChildren: AuthedRouteChildren = {
   AuthedPlanningRoute: AuthedPlanningRouteWithChildren,
   AuthedPrintRoute: AuthedPrintRoute,
   AuthedSettingsRoute: AuthedSettingsRoute,
+  AuthedWorksheetRoute: AuthedWorksheetRoute,
   AuthedIndexRoute: AuthedIndexRoute,
+  AuthedKidChildIdRoute: AuthedKidChildIdRoute,
+  AuthedLessonConversationIdRoute: AuthedLessonConversationIdRoute,
+  AuthedKidIndexRoute: AuthedKidIndexRoute,
 }
 
 const AuthedRouteWithChildren =

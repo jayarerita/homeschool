@@ -12,7 +12,16 @@ const schema = a
 		Color: a.enum(COLOR_TOKENS),
 
 		// "material" = physical supplies to gather (glue, cardstock, …).
-		ResourceType: a.enum(["link", "video", "pdf", "note", "book", "material"]),
+		ResourceType: a.enum([
+			"link",
+			"video",
+			"pdf",
+			"note",
+			"book",
+			"material",
+			// A printable worksheet the tutor generated (HTML in uploads/worksheets/).
+			"worksheet",
+		]),
 
 		// A file in Amplify Storage.
 		Attachment: a.customType({

@@ -11,6 +11,7 @@ import {
 	listLibrary,
 	RESOURCE_KINDS,
 	type ResourceKind,
+	resourceKindLabel,
 } from "~/lib/planning-data";
 
 export type ResourceDraft = Omit<Resource, "type"> & { type: ResourceKind };
@@ -185,7 +186,7 @@ export default function ResourceListEditor({
 						>
 							<span className="flex-1 truncate text-slate-700">{r.label}</span>
 							<span className="text-xs text-slate-400">
-								{RESOURCE_KINDS.find((k) => k.value === r.type)?.label}
+								{resourceKindLabel(r.type)}
 								{r.s3Key && " · file"}
 							</span>
 							<button

@@ -59,6 +59,22 @@ Bedrock (Claude Sonnet 5), or whatever `TUTOR_PROVIDER` (`bedrock`, `anthropic`,
 `bedrock-openai`), `TUTOR_MODEL` and the `ANTHROPIC_API_KEY` sandbox secret set
 at deploy time.
 
+## Kid mode and lessons
+
+- **Kid mode** (smiley icon in the header): pick a child and hand over the
+  device. It shows that child's day as big cards, and stays locked to their
+  view (even after a reload) until a grown-up answers a quick math question.
+- **Lessons**: "Let's go!" in kid mode, or "Start a lesson" on any activity,
+  opens a full-screen lesson where the tutor talks to the child one step at a
+  time. Replies are read aloud and the child can answer with the microphone,
+  using the browser's built-in speech (best in Chrome; the microphone is hidden
+  where it isn't supported). When the child taps "We're done!", the tutor says
+  goodbye, records how it went, and marks the activity done.
+- **Worksheets**: ask the tutor for a printable worksheet (tracing, counting,
+  matching, coloring) and it attaches one to the activity; "Open worksheet"
+  shows it ready to print. Worksheets are shown in a locked-down frame with no
+  scripts or outside content.
+
 ## Planner and notifications
 
 Every hour a scheduled function checks the household's local time and:
